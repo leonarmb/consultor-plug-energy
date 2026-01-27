@@ -18,7 +18,7 @@ try:
     # Configuração Global da IA
     genai.configure(api_key=API_KEY)
     
-    # Definição do Modelo (Nome simplificado para evitar erro 404 v1beta)
+    # Definição do Modelo
     model = genai.GenerativeModel('gemini-1.5-flash')
     
 except Exception as e:
@@ -40,7 +40,6 @@ estoque_df = carregar_dados()
 
 # 4. Construção da Inteligência do Bot
 if estoque_df is not None:
-    # Transformamos o estoque em texto para a IA ler
     contexto_estoque = estoque_df.to_string(index=False)
     
     instrucoes_engenharia = f"""
@@ -69,7 +68,6 @@ if estoque_df is not None:
 
         with st.chat_message("assistant"):
             try:
-                # Criando a resposta
                 full_query = f"{instrucoes_engenharia}\n\nPergunta do usuário: {prompt}"
                 response = model.generate_content(full_query)
                 
@@ -77,10 +75,6 @@ if estoque_df is not None:
                 st.markdown(resposta_texto)
                 st.session_state.messages.append({"role": "assistant", "content": resposta_texto})
             except Exception as e:
-                # Caso o erro 404 persista, ele mostrará uma dica amigável
-                if "404" in str(e):
-                    st.error("Erro 404: O Google ainda não reconheceu este modelo para sua chave. Tente aguardar 5 minutos ou verifique se o modelo está ativo no seu AI Studio.")
-                else:
-                    st.error(f"Ocorreu um erro na IA: {e}")
+                st.error(f"Ocorreu um erro na IA: {e}")
 else:
-    st.warning("
+    st.warning("Sistema aguardando conexão com a base de dados do Google Sheets.")
