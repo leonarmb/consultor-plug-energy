@@ -2,59 +2,73 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 
-# 1. Configuração da Página e Identidade Visual
+# 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
-st.title("🔋 Consultor Técnico Plug Energy")
 
-# 2. Conexão Segura com API
+# --- INTERFACE VISUAL (LOGO E TÍTULO) ---
+# Criamos colunas para centralizar o logotipo da empresa
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.image("https://www.plugenergy.com.br/wp-content/uploads/2021/05/logo-plug-energy.png", width=300)
+
+st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>Inteligência Artificial aplicada a Nobreaks e Infraestrutura</p>", unsafe_allow_html=True)
+st.markdown("---")
+
+# 2. Configuração de Acesso (Chaves de Segurança)
+# Mantendo as chaves que você forneceu para garantir o funcionamento imediato
+MINHA_API_KEY = "AIzaSyBqGtwQ6WRDs2z8hxzWHClqSRlqfwVz2WM"
+MEU_LINK_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3NB1lKiPMuDYGflHluFFb1mJF1A31VUTzSBHh5YJtrM7MrgJ6EnZ8a95LifdS9Y5khRbNB-GbrNv-/pub?output=csv"
+
 try:
-    # Busca as chaves cadastradas nos Secrets do Streamlit
-    API_KEY = st.secrets["GOOGLE_API_KEY"]
-    LINK_CSV = st.secrets["LINK_PLANILHA_ESTOQUE"]
-    
-    genai.configure(api_key=API_KEY)
-    
-    # Modelo Gemini 3 Flash (Alta velocidade e precisão)
+    genai.configure(api_key=MINHA_API_KEY)
+    # Modelo Gemini 3 Flash conforme o seu Playground
     model = genai.GenerativeModel('gemini-3-flash-preview')
-    
 except Exception as e:
-    st.error("Erro ao carregar chaves de segurança. Verifique os Secrets no Streamlit.")
+    st.error(f"Erro na configuração da API: {e}")
     st.stop()
 
-# 3. Carregamento Inteligente de Estoque
-@st.cache_data(ttl=600)
+# 3. Carregamento do Estoque em Tempo Real
+@st.cache_data(ttl=300)
 def carregar_dados():
     try:
-        return pd.read_csv(LINK_CSV)
-    except Exception:
+        df = pd.read_csv(MEU_LINK_CSV)
+        return df
+    except Exception as e:
+        st.error(f"Erro ao ler a planilha: {e}")
         return None
 
 estoque_df = carregar_dados()
 
-# 4. Prompt de Engenharia (A "Mente" do Bot)
+# 4. Construção da Inteligência do Consultor
 if estoque_df is not None:
     contexto_estoque = estoque_df.to_string(index=False)
     
     instrucoes_engenharia = f"""
-    CONTEXTO: Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
-    ESTOQUE ATUALIZADO: {contexto_estoque}
+    CONTEXTO E IDENTIDADE: Você é o Engenheiro Consultor de Vendas Sênior da Plug Energy do Brasil. 
+    Seu tom é profissional, técnico e focado em segurança de energia.
     
-    DIRETRIZES TÉCNICAS:
-    - Aplique sempre +20% de margem de segurança sobre a carga do cliente.
-    - Se a carga + margem ultrapassar a potência do nobreak, sugira upgrade ou paralelismo.
-    - Use a lógica de bateria 9Ah para cálculos de autonomia.
-    - PRIORIDADE COMERCIAL: Marca Plug Energy para Locação.
-    - MISSÃO CRÍTICA: Ofereça Redundância N+1 (Paralelismo).
+    DADOS DE ESTOQUE: 
+    {contexto_estoque}
+    
+    LOGICA DE ENGENHARIA E DIRETRIZES:
+    - Validação de Carga: Sempre adicione 20% de margem sobre a carga informada pelo cliente.
+    - Upgrade Técnico: Se o cliente precisar de 1kVA e não houver, ofereça 3kVA. Se precisar de 6kVA, ofereça 10kVA.
+    - Autonomia: Use a tabela de descarga de baterias de 9Ah para os cálculos.
+    - Prioridade Comercial: Para contratos de LOCAÇÃO, ofereça sempre equipamentos da marca "Plug Energy".
+    - Missão Crítica: Sempre apresente um cenário de paralelismo redundante (N+1).
     """
 
-    # Interface de Chat
+    # 5. Interface de Chat
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    # Exibe as mensagens anteriores do chat
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
+    # Entrada do usuário
     if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -62,12 +76,14 @@ if estoque_df is not None:
 
         with st.chat_message("assistant"):
             try:
-                full_prompt = f"{instrucoes_engenharia}\n\nPergunta: {prompt}"
+                # Chamada do Gemini 3
+                full_prompt = f"{instrucoes_engenharia}\n\nPergunta do usuário: {prompt}"
                 response = model.generate_content(full_prompt)
                 
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
+                resposta_texto = response.text
+                st.markdown(resposta_texto)
+                st.session_state.messages.append({"role": "assistant", "content": resposta_texto})
             except Exception as e:
                 st.error(f"Erro na resposta da IA: {e}")
 else:
-    st.warning("Aguardando sincronização com a planilha de estoque...")
+    st.warning("Aguardando sincronização com a base de dados do Google Sheets.")
