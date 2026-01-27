@@ -2,56 +2,52 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 
-# 1. Configuração da Página
+# 1. Configuração da Página e Identidade Visual
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 st.title("🔋 Consultor Técnico Plug Energy")
 
-# 2. Configuração de Acesso (Chaves Diretas)
-# Substituindo pelas suas chaves reais conforme solicitado
-MINHA_API_KEY = "AIzaSyBqGtwQ6WRDs2z8hxzWHClqSRlqfwVz2WM"
-MEU_LINK_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3NB1lKiPMuDYGflHluFFb1mJF1A31VUTzSBHh5YJtrM7MrgJ6EnZ8a95LifdS9Y5khRbNB-GbrNv-/pub?output=csv"
-
+# 2. Conexão Segura com API
 try:
-    # Configura a IA com a sua chave do projeto BOTPLUGENERGY
-    genai.configure(api_key=MINHA_API_KEY)
+    # Busca as chaves cadastradas nos Secrets do Streamlit
+    API_KEY = st.secrets["GOOGLE_API_KEY"]
+    LINK_CSV = st.secrets["LINK_PLANILHA_ESTOQUE"]
     
-    # Define o modelo Gemini 3 (ajustado conforme o seu Playground)
+    genai.configure(api_key=API_KEY)
+    
+    # Modelo Gemini 3 Flash (Alta velocidade e precisão)
     model = genai.GenerativeModel('gemini-3-flash-preview')
     
 except Exception as e:
-    st.error(f"Erro na configuração da API: {e}")
+    st.error("Erro ao carregar chaves de segurança. Verifique os Secrets no Streamlit.")
     st.stop()
 
-# 3. Carregamento do Estoque
-@st.cache_data(ttl=300)
+# 3. Carregamento Inteligente de Estoque
+@st.cache_data(ttl=600)
 def carregar_dados():
     try:
-        df = pd.read_csv(MEU_LINK_CSV)
-        return df
-    except Exception as e:
-        st.error(f"Erro ao ler a planilha: {e}")
+        return pd.read_csv(LINK_CSV)
+    except Exception:
         return None
 
 estoque_df = carregar_dados()
 
-# 4. Inteligência do Consultor
+# 4. Prompt de Engenharia (A "Mente" do Bot)
 if estoque_df is not None:
     contexto_estoque = estoque_df.to_string(index=False)
     
-    # Suas instruções de Engenharia do Playground
     instrucoes_engenharia = f"""
-    CONTEXTO E IDENTIDADE: Você é o Engenheiro Consultor de Vendas Sênior da Plug Energy do Brasil. 
-    DADOS DE ESTOQUE: {contexto_estoque}
+    CONTEXTO: Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
+    ESTOQUE ATUALIZADO: {contexto_estoque}
     
-    LOGICA DE ENGENHARIA:
-    - Validação de Carga: Considere Consumo Total + 20% de margem.
-    - Autonomia: Use a tabela de descarga de 9Ah para cálculos.
-    - Upgrade: Lógica 1->3kVA e 6->10kVA (Entrega maior pelo preço do menor se necessário).
-    - Prioridade: Para locação, ofereça sempre marca "Plug Energy".
-    - Missão Crítica: Sempre ofereça cenário de redundância N+1.
+    DIRETRIZES TÉCNICAS:
+    - Aplique sempre +20% de margem de segurança sobre a carga do cliente.
+    - Se a carga + margem ultrapassar a potência do nobreak, sugira upgrade ou paralelismo.
+    - Use a lógica de bateria 9Ah para cálculos de autonomia.
+    - PRIORIDADE COMERCIAL: Marca Plug Energy para Locação.
+    - MISSÃO CRÍTICA: Ofereça Redundância N+1 (Paralelismo).
     """
 
-    # 5. Interface de Chat
+    # Interface de Chat
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -66,14 +62,12 @@ if estoque_df is not None:
 
         with st.chat_message("assistant"):
             try:
-                # Gerando a resposta com Gemini 3
-                full_prompt = f"{instrucoes_engenharia}\n\nUsuário enviou os seguintes dados: {prompt}"
+                full_prompt = f"{instrucoes_engenharia}\n\nPergunta: {prompt}"
                 response = model.generate_content(full_prompt)
                 
-                resposta_texto = response.text
-                st.markdown(resposta_texto)
-                st.session_state.messages.append({"role": "assistant", "content": resposta_texto})
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
                 st.error(f"Erro na resposta da IA: {e}")
 else:
-    st.warning("Verifique o link do CSV. O sistema não conseguiu ler os dados.")
+    st.warning("Aguardando sincronização com a planilha de estoque...")
