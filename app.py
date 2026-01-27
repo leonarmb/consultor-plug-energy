@@ -25,7 +25,7 @@ def carregar_estoque():
 estoque_raw = carregar_estoque()
 
 # --- CONFIGURAÇÃO DO BOT ---
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 system_instruction = f"""
 Você é o Engenheiro Consultor Sênior da Plug Energy. 
