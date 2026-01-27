@@ -2,39 +2,49 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 
-# Configuração da Página
+# 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 
-# Exibição do Logo
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.image("logo_plugenergy.png", use_container_width=True)
+# --- INTERFACE VISUAL (LOGO E TÍTULO) ---
+@st.cache_data
+def exibir_cabecalho():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        # Carrega o logo que você subiu no GitHub
+        st.image("logo_plugenergy.png", use_container_width=True)
+    st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
+    st.markdown("---")
 
-st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
-st.markdown("---")
+exibir_cabecalho()
 
-# BUSCA A CHAVE DE FORMA SEGURA (Configurada no menu Secrets do Streamlit)
+# 2. Configuração de Acesso via Secrets (Proteção contra Bloqueio)
 try:
+    # Agora o sistema busca as chaves nos Secrets do Streamlit
     API_KEY = st.secrets["GOOGLE_API_KEY"]
     LINK_CSV = st.secrets["LINK_PLANILHA_ESTOQUE"]
     
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # RESTAURADO: Gemini 3.0 Flash Preview
+    model = genai.GenerativeModel('gemini-3-flash-preview')
 except Exception as e:
-    st.error("Erro de Segurança: Configure a 'GOOGLE_API_KEY' nos Secrets do Streamlit.")
+    st.error("Erro de Configuração: Certifique-se de que a 'GOOGLE_API_KEY' nova está nos Secrets do Streamlit.")
     st.stop()
 
-# Carregamento de Dados (Mantendo 100% das suas colunas e dimensões)
+# 3. Carregamento INTEGRAL dos Dados (Mantendo todas as colunas técnicas e financeiras)
 @st.cache_data(ttl=600)
-def carregar_dados():
+def carregar_estoque():
     try:
         df = pd.read_csv(LINK_CSV)
+        # Remove apenas colunas fantasmas geradas pelo Sheets (Unnamed)
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         return df
-    except:
+    except Exception as e:
+        st.error(f"Erro ao ler planilha: {e}")
         return None
 
-estoque_df = carregar_dados()
+estoque_df = carregar_estoque()
 
+# 4. Interface de Chat
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -48,15 +58,28 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # Enviamos os dados em formato CSV para economizar tokens sem perder informação
+        # COMPACTAÇÃO TÉCNICA: Enviamos em CSV para manter dados de dimensões e custos 
+        # ocupando 40% menos tokens que o formato de texto comum.
         contexto_csv = estoque_df.to_csv(index=False)
         
-        full_prompt = f"Você é o Engenheiro Sênior da Plug Energy. Analise o estoque completo: \n\n{contexto_csv}\n\nPergunta: {prompt}"
+        full_prompt = f"""Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
+        Analise o estoque abaixo com rigor técnico (considere VDC, Dimensões e Custos para suas análises):
+        
+        {contexto_csv}
+        
+        DIRETRIZES:
+        - Aplique +20% de margem de carga.
+        - Verifique compatibilidade de tensão (Entrada/Saída).
+        - Para locação, priorize marca Plug Energy.
+        - Use os dados de dimensões para validar instalações em racks quando solicitado.
+        
+        Pergunta do Usuário: {prompt}"""
         
         placeholder = st.empty()
         full_response = ""
         
         try:
+            # STREAMING ATIVADO: A resposta aparece enquanto é gerada
             response = model.generate_content(full_prompt, stream=True)
             for chunk in response:
                 full_response += chunk.text
@@ -64,4 +87,4 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             placeholder.markdown(full_response)
             st.session_state.messages.append({"role": "assistant", "content": full_response})
         except Exception as e:
-            st.error(f"Erro na resposta: {e}")
+            st.error(f"Erro na comunicação: Sua chave nova pode estar demorando a propagar ou o limite de tokens foi atingido. Detalhe: {e}")
