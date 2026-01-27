@@ -25,7 +25,9 @@ def carregar_estoque():
 estoque_raw = carregar_estoque()
 
 # --- CONFIGURAÇÃO DO BOT ---
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+model = genai.GenerativeModel(model_name='models/gemini-1.5-flash')
+if not st.secrets["GOOGLE_API_KEY"]:
+    st.error("Chave API não encontrada nos Secrets!")
 
 system_instruction = f"""
 Você é o Engenheiro Consultor Sênior da Plug Energy. 
