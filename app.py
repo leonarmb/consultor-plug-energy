@@ -17,6 +17,15 @@ def exibir_cabecalho():
 
 exibir_cabecalho()
 
+# --- INSTRUÇÕES (EXPANSÍVEL PARA NÃO POLUIR) ---
+with st.expander("📖 Guia Rápido e Regras de Negócio"):
+    st.markdown("""
+    - **Margem de Segurança:** O sistema adiciona automaticamente 20% à carga informada.
+    - **Estoque:** Dados atualizados em tempo real via Google Sheets.
+    - **Cálculos:** Autonomia baseada em baterias de 9Ah e descarga padrão.
+    - **Sugestões:** O robô prioriza a marca *Plug Energy* para contratos de locação.
+    """)
+
 # 2. Configuração de Acesso via Secrets (Proteção contra Bloqueio)
 try:
     # Agora o sistema busca as chaves nos Secrets do Streamlit
