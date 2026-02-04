@@ -45,7 +45,7 @@ except Exception as e:
     st.stop()
 
 # 3. Carregamento INTEGRAL dos Dados (Mantendo todas as colunas técnicas e financeiras)
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def carregar_estoque():
     try:
         df = pd.read_csv(LINK_CSV)
