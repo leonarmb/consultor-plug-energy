@@ -27,7 +27,7 @@ with st.expander("📖 Orientações de Uso e Regras de Engenharia"):
     **Notas Técnicas:**
     - Cálculos de autonomia baseados em baterias de 9Ah.
     - Prioridade para marca *Plug Energy* em todos os cenários.
-    - Verificação de tensão (VDC) e compatibilidade elétrica integrada.
+    - Verificação de tensão (VDC), dimensões (mm para U) e compatibilidade.
     """)
 
 # 2. Configuração de Acesso via Secrets
@@ -74,33 +74,41 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            # DEFINIÇÃO DO PROMPT ESTRATÉGICO PARA USO INTERNO
+            # DEFINIÇÃO DO PROMPT ESTRATÉGICO PARA USO INTERNO (ATUALIZADO)
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil.
-            Este bot é uma ferramenta INTERNA para vendedores e técnicos. Sua missão é preparar o vendedor com as melhores opções antes da proposta final ao cliente.
+            Este bot é uma ferramenta INTERNA para vendedores e técnicos. Use os dados para preparar a melhor oferta técnica e comercial.
 
             DADOS TÉCNICOS:
             {contexto_estoque}
             
-            DIRETRIZES DE RESPOSTA (GERAR SEMPRE 3 CENÁRIOS):
-            1. CENÁRIO ECONÔMICO: Foco no menor custo. Sem redundância, conexão Fase-Neutro (se possível) e baterias estritamente para o tempo solicitado.
-            2. CENÁRIO IDEAL: A solução técnica perfeita. Redundância N+1 (se for missão crítica), isolação galvânica via Transformador e margem de 20%.
-            3. CENÁRIO EXPANSÃO (FUTURO): Sugira um Nobreak de maior potência (ex: se pediu 3kVA, sugira 6kVA ou 10kVA). Argumente sobre escalabilidade e evitar novos gastos com infraestrutura em 12-24 meses.
+            DIRETRIZES TÉCNICAS MANDATÓRIAS:
+            1. POTÊNCIA REAL: Calcule Watts = (kVA * Fator de Potência). Valide se suporta a carga + 20% de margem.
+            2. DIMENSÕES (mm para U): Use a regra 1U = 44.45mm. Some as alturas e valide no rack do cliente.
+            3. PROFUNDIDADE: Se o comprimento do equipamento for > 90% da profundidade do rack, alerte sobre o espaço para cabos/conexões traseiras.
+            4. BATERIAS: Se a autonomia exigir mais baterias que o 'Capacidade Máx Interna', adicione o gabinete externo compatível (VDC igual). 
+            5. PARALELO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', inclua um ATS do estoque ou solicite cotação externa.
+            6. PRIORIDADE PLUG ENERGY: Priorize nossa marca mesmo com adaptações (Trafo), pois temos estoque de peças para reposição imediata.
+            7. RIGOR DE BATERIAS: Jamais misture marcas no mesmo banco (Selo de Qualidade Plug Energy).
 
-            REGRAS MANDATÓRIAS:
-            - TABELA DE CUSTOS: Para CADA cenário, apresente uma tabela detalhada com itens, VALOR DE VENDA TOTAL e VALOR DE LOCAÇÃO TOTAL.
-            - RIGOR DE BATERIAS: Jamais misture marcas no mesmo banco (Selo de Qualidade Plug Energy).
-            - PARECER DO ENGENHEIRO: Ao final, escreva um parágrafo aconselhando o vendedor sobre qual cenário ele deve enfatizar baseado no perfil do cliente descrito.
-            - PRIORIDADE PLUG ENERGY: Priorize nossa marca em todos os itens.
-            - VALIDAÇÃO DE ESPAÇO: Verifique se cada cenário cabe no rack/espaço informado.
+            ESTRATÉGIA COMERCIAL INTERNA:
+            - LOCAÇÃO: Priorize equipamentos 'Usados'. Se não houver, use 'Novos'.
+            - VENDA: Use APENAS equipamentos 'Novos'.
+            - TABELA DE CUSTOS: Para cada cenário, apresente: Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
+            - LUCRO: Ao final de cada tabela, calcule o LUCRO BRUTO (Valor Total - Custo Total).
+
+            GERAR SEMPRE 3 CENÁRIOS:
+            1. ECONÔMICO: Menor custo, pode usar Fase-Neutro (380V->220V) se viável, sem redundância.
+            2. IDEAL: O projeto perfeito à prova de falhas. N+1 (se crítico), Isolação Galvânica via Trafo.
+            3. EXPANSÃO (FUTURO): Sugira potência maior para crescimento do cliente em 12-24 meses.
+
+            Parecer do Engenheiro: Ao final, aconselhe o vendedor sobre qual cenário focar baseado no 'feeling' do cliente e status do estoque de baterias.
 
             Pergunta do Vendedor/Técnico: {prompt}"""
             
-            # VARIÁVEIS DE EXIBIÇÃO (CORRIGIDAS)
             placeholder = st.empty()
             full_response = ""
             
             try:
-                # Streaming da resposta
                 response = model.generate_content(full_prompt, stream=True)
                 for chunk in response:
                     full_response += chunk.text
