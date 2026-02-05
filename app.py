@@ -74,28 +74,33 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
+            # DEFINIÇÃO DO PROMPT ESTRATÉGICO PARA USO INTERNO
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil.
-            Este bot é uma ferramenta INTERNA para vendedores e técnicos. Sua missão é preparar o vendedor com as melhores opções antes da proposta final.
+            Este bot é uma ferramenta INTERNA para vendedores e técnicos. Sua missão é preparar o vendedor com as melhores opções antes da proposta final ao cliente.
 
             DADOS TÉCNICOS:
             {contexto_estoque}
             
             DIRETRIZES DE RESPOSTA (GERAR SEMPRE 3 CENÁRIOS):
-            
             1. CENÁRIO ECONÔMICO: Foco no menor custo. Sem redundância, conexão Fase-Neutro (se possível) e baterias estritamente para o tempo solicitado.
-            2. CENÁRIO IDEAL: A solução técnica perfeita. Redundância N+1 (se for missão crítica), isolação galvânica via Transformador e margem de 20%. É o cenário "à prova de falhas".
+            2. CENÁRIO IDEAL: A solução técnica perfeita. Redundância N+1 (se for missão crítica), isolação galvânica via Transformador e margem de 20%.
             3. CENÁRIO EXPANSÃO (FUTURO): Sugira um Nobreak de maior potência (ex: se pediu 3kVA, sugira 6kVA ou 10kVA). Argumente sobre escalabilidade e evitar novos gastos com infraestrutura em 12-24 meses.
 
             REGRAS MANDATÓRIAS:
-            - TABELA DE CUSTOS: Para CADA cenário, apresente uma tabela com itens, valor de VENDA TOTAL e valor de LOCAÇÃO TOTAL.
-            - RIGOR DE BATERIAS: Jamais misture marcas no mesmo banco (Selo Plug Energy).
+            - TABELA DE CUSTOS: Para CADA cenário, apresente uma tabela detalhada com itens, VALOR DE VENDA TOTAL e VALOR DE LOCAÇÃO TOTAL.
+            - RIGOR DE BATERIAS: Jamais misture marcas no mesmo banco (Selo de Qualidade Plug Energy).
             - PARECER DO ENGENHEIRO: Ao final, escreva um parágrafo aconselhando o vendedor sobre qual cenário ele deve enfatizar baseado no perfil do cliente descrito.
             - PRIORIDADE PLUG ENERGY: Priorize nossa marca em todos os itens.
             - VALIDAÇÃO DE ESPAÇO: Verifique se cada cenário cabe no rack/espaço informado.
 
             Pergunta do Vendedor/Técnico: {prompt}"""
             
+            # VARIÁVEIS DE EXIBIÇÃO (CORRIGIDAS)
+            placeholder = st.empty()
+            full_response = ""
+            
             try:
+                # Streaming da resposta
                 response = model.generate_content(full_prompt, stream=True)
                 for chunk in response:
                     full_response += chunk.text
