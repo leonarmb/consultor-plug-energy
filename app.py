@@ -83,9 +83,6 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # SEGURANÇA: Só prossegue se o estoque foi carregado
-        if contexto_estoque:
-with st.chat_message("assistant"):
         if contexto_estoque:
             full_prompt = f"""Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
             Use os dados técnicos abaixo (que abrangem Nobreaks, Baterias, Racks e Infraestrutura):
