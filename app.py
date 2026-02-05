@@ -44,19 +44,30 @@ except Exception as e:
     st.error("Erro de Configuração: Certifique-se de que a 'GOOGLE_API_KEY' nova está nos Secrets do Streamlit.")
     st.stop()
 
-# 3. Carregamento INTEGRAL dos Dados (Mantendo todas as colunas técnicas e financeiras)
-@st.cache_data(ttl=60)
-def carregar_estoque():
+# 3. Carregamento MULTI-ABA (Lê todo o Excel vivo)
+@st.cache_data(ttl=60) # Atualiza a cada 60 segundos
+def carregar_estoque_total():
     try:
-        df = pd.read_csv(LINK_CSV)
-        # Remove apenas colunas fantasmas geradas pelo Sheets (Unnamed)
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        return df
+        url = st.secrets["LINK_PLANILHA_ESTOQUE"]
+        # Lê todas as abas e cria um dicionário de DataFrames
+        dicionario_abas = pd.read_excel(url, sheet_name=None)
+        
+        texto_contexto = ""
+        for nome_da_aba, df in dicionario_abas.items():
+            # Limpa colunas vazias
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+            df = df.dropna(how='all')
+            
+            # Adiciona o conteúdo da aba ao contexto
+            texto_contexto += f"\n\n--- ABA: {nome_da_aba.upper()} ---\n"
+            texto_contexto += df.to_csv(index=False)
+            
+        return texto_contexto
     except Exception as e:
-        st.error(f"Erro ao ler planilha: {e}")
+        st.error(f"Erro ao ler o Excel vivo: {e}. Verifique o link e as permissões.")
         return None
 
-estoque_df = carregar_estoque()
+contexto_estoque = carregar_estoque_total()
 
 # 4. Interface de Chat
 if "messages" not in st.session_state:
