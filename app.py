@@ -44,30 +44,31 @@ except Exception as e:
     st.error("Erro de Configuração: Certifique-se de que a 'GOOGLE_API_KEY' nova está nos Secrets do Streamlit.")
     st.stop()
 
-# 3. Carregamento MULTI-ABA (Lê todo o Excel vivo)
-@st.cache_data(ttl=60) # Atualiza a cada 60 segundos
+# 3. Carregamento MULTI-ABA Otimizado
+@st.cache_data(ttl=60)
 def carregar_estoque_total():
     try:
         url = st.secrets["LINK_PLANILHA_ESTOQUE"]
-        # Lê todas as abas e cria um dicionário de DataFrames
-        dicionario_abas = pd.read_excel(url, sheet_name=None)
+        
+        # O pandas precisa do engine='openpyxl' para ler links de Excel (.xlsx)
+        dicionario_abas = pd.read_excel(url, sheet_name=None, engine='openpyxl')
         
         texto_contexto = ""
         for nome_da_aba, df in dicionario_abas.items():
-            # Limpa colunas vazias
+            # Limpa colunas e linhas fantasmas
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
             df = df.dropna(how='all')
             
-            # Adiciona o conteúdo da aba ao contexto
-            texto_contexto += f"\n\n--- ABA: {nome_da_aba.upper()} ---\n"
-            texto_contexto += df.to_csv(index=False)
+            if not df.empty:
+                texto_contexto += f"\n\n--- CATEGORIA: {nome_da_aba.upper()} ---\n"
+                # Usamos CSV para o contexto da IA por ser mais leve que Excel
+                texto_contexto += df.to_csv(index=False)
             
         return texto_contexto
     except Exception as e:
-        st.error(f"Erro ao ler o Excel vivo: {e}. Verifique o link e as permissões.")
+        # Exibe o erro exato para diagnóstico
+        st.error(f"Erro ao acessar a planilha: {e}")
         return None
-
-contexto_estoque = carregar_estoque_total()
 
 # 4. Interface de Chat
 if "messages" not in st.session_state:
