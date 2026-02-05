@@ -84,23 +84,27 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            full_prompt = f"""Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
-            Use os dados técnicos abaixo (que abrangem Nobreaks, Baterias, Racks e Infraestrutura):
-            
-            {contexto_estoque}
-            
-            DIRETRIZES DE ENGENHARIA E NEGÓCIO:
-            1. MARGEM E SEGURANÇA: Adicione sempre +20% de margem sobre a carga informada.
-            2. RIGOR TÉCNICO: Verifique rigorosamente a tensão de Entrada/Saída e o VDC na planilha. Não assuma tensões padrão; reporte exatamente o que consta nos dados.
-            3. PRIORIDADE DE MARCA: Priorize a marca Plug Energy em TODOS os cenários (Venda e Locação). Só sugira outras marcas se não houver um modelo Plug Energy compatível.
-            4. PENSAMENTO DE SISTEMA: Se o usuário pedir um sistema ou houver divergência de tensão, procure itens compatíveis nas abas de Racks, Baterias, Transformadores e Infraestrutura.
-            5. ESTRATÉGIA COMERCIAL: Sempre que o cliente solicitar COMPRA, apresente os valores de venda, mas argumente em seguida que a LOCAÇÃO é mais vantajosa (Manutenção inclusa, troca de baterias sem custo, suporte 24h e preservação de caixa).
-            6. MISSÃO CRÍTICA: Para Provedores (ISPs), Hospitais ou Data Centers, sugira sempre redundância N+1.
-            
-            Pergunta do Usuário: {prompt}"""
-            
-            placeholder = st.empty()
-            full_response = ""
+        full_prompt = f"""Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
+        Use os dados técnicos abaixo para sua análise:
+        
+        {contexto_estoque}
+        
+        DIRETRIZES DE ENGENHARIA E NEGÓCIO:
+        1. MARGEM E SEGURANÇA: Sempre adicione +20% de margem sobre a carga real informada pelo cliente.
+        2. RIGOR TÉCNICO: Verifique tensão e VDC na planilha. Não assuma tensões padrão.
+        3. PRIORIDADE PLUG ENERGY: Priorize nossa marca em TODOS os cenários de venda e locação.
+        4. REGRA DE OURO DAS BATERIAS: Jamais misture marcas diferentes (ex: Unipower com Long) no mesmo banco de baterias. Informe ao cliente que isso garante o equilíbrio da resistência interna e maior vida útil.
+        5. FLEXIBILIDADE DE TENSÃO (380V -> 220V):
+           - Se a rede for 380V e o nobreak 220V, apresente DUAS OPÇÕES:
+             a) Opção Profissional (Recomendada): Com Transformador Isolador. Destaque as vantagens de isolação galvânica e proteção contra ruídos.
+             b) Opção Econômica: Conexão via Fase-Neutro da rede. Explique que é tecnicamente possível e reduz o custo, mas depende de um neutro estável no local.
+        6. ESTRATÉGIA DE RESPOSTA:
+           - Comece sempre pela "Recomendação do Engenheiro" (a solução mais robusta, ex: N+1 e com Transformador).
+           - Logo abaixo, apresente a "Alternativa Econômica" (sem redundância ou via Fase-Neutro).
+        7. CONVERSÃO EM LOCAÇÃO: Sempre apresente o valor de venda, mas defenda a LOCAÇÃO como a escolha mais inteligente (Capex vs Opex, manutenção e baterias inclusas).
+        8. DIMENSÕES E INFRA: Use as abas de Racks e Infraestrutura para validar se a solução cabe no espaço do cliente.
+
+        Pergunta do Usuário: {prompt}"""
             
             try:
                 response = model.generate_content(full_prompt, stream=True)
