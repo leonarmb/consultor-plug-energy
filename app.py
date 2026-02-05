@@ -85,17 +85,20 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
     with st.chat_message("assistant"):
         # SEGURANÇA: Só prossegue se o estoque foi carregado
         if contexto_estoque:
+with st.chat_message("assistant"):
+        if contexto_estoque:
             full_prompt = f"""Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
             Use os dados técnicos abaixo (que abrangem Nobreaks, Baterias, Racks e Infraestrutura):
             
             {contexto_estoque}
             
-            DIRETRIZES DE ENGENHARIA:
-            - Aplique +20% de margem de carga sobre o valor informado pelo cliente.
-            - Verifique rigorosamente a tensão de Entrada/Saída e o VDC informados na planilha.
-            - Não assuma tensões padrão; reporte exatamente o que consta nos dados.
-            - Priorize a marca Plug Energy para locações.
-            - Se o usuário pedir um sistema completo, procure itens compatíveis em todas as categorias.
+            DIRETRIZES DE ENGENHARIA E NEGÓCIO:
+            1. MARGEM E SEGURANÇA: Adicione sempre +20% de margem sobre a carga informada.
+            2. RIGOR TÉCNICO: Verifique rigorosamente a tensão de Entrada/Saída e o VDC na planilha. Não assuma tensões padrão; reporte exatamente o que consta nos dados.
+            3. PRIORIDADE DE MARCA: Priorize a marca Plug Energy em TODOS os cenários (Venda e Locação). Só sugira outras marcas se não houver um modelo Plug Energy compatível.
+            4. PENSAMENTO DE SISTEMA: Se o usuário pedir um sistema ou houver divergência de tensão, procure itens compatíveis nas abas de Racks, Baterias, Transformadores e Infraestrutura.
+            5. ESTRATÉGIA COMERCIAL: Sempre que o cliente solicitar COMPRA, apresente os valores de venda, mas argumente em seguida que a LOCAÇÃO é mais vantajosa (Manutenção inclusa, troca de baterias sem custo, suporte 24h e preservação de caixa).
+            6. MISSÃO CRÍTICA: Para Provedores (ISPs), Hospitais ou Data Centers, sugira sempre redundância N+1.
             
             Pergunta do Usuário: {prompt}"""
             
