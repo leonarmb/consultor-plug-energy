@@ -10,7 +10,6 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 def exibir_cabecalho():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Carrega o logo que você subiu no GitHub
         st.image("logo_plugenergy.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
@@ -23,11 +22,11 @@ with st.expander("📖 Orientações de Uso e Regras de Engenharia"):
     **Como utilizar:**
     1. Descreva a carga total ou o modelo de nobreak desejado.
     2. O sistema aplicará automaticamente **20% de margem** sobre a carga.
-    3. Para projetos de **Missão Crítica**, solicite uma análise de redundância N+1.
+    3. Para projetos de **Missão Crítica**, a redundância N+1 será a prioridade.
     
     **Notas Técnicas:**
     - Cálculos de autonomia baseados em baterias de 9Ah.
-    - Prioridade para marca *Plug Energy* em contratos de locação.
+    - Prioridade para marca *Plug Energy* em todos os cenários.
     - Verificação de tensão (VDC) e compatibilidade elétrica integrada.
     """)
 
@@ -35,28 +34,24 @@ with st.expander("📖 Orientações de Uso e Regras de Engenharia"):
 try:
     API_KEY = st.secrets["GOOGLE_API_KEY"]
     LINK_PLANILHA = st.secrets["LINK_PLANILHA_ESTOQUE"]
-    
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel('gemini-3-flash-preview')
 except Exception as e:
-    st.error("Erro de Configuração: Certifique-se de que as chaves estão nos Secrets do Streamlit.")
+    st.error("Erro de Configuração: Verifique as chaves nos Secrets.")
     st.stop()
 
-# 3. Carregamento MULTI-ABA (Lê todo o Excel vivo)
+# 3. Carregamento MULTI-ABA
 @st.cache_data(ttl=60)
 def carregar_estoque_total():
     try:
         dicionario_abas = pd.read_excel(LINK_PLANILHA, sheet_name=None, engine='openpyxl')
-        
         texto_contexto = ""
         for nome_da_aba, df in dicionario_abas.items():
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
             df = df.dropna(how='all')
-            
             if not df.empty:
                 texto_contexto += f"\n\n--- CATEGORIA: {nome_da_aba.upper()} ---\n"
                 texto_contexto += df.to_csv(index=False)
-            
         return texto_contexto
     except Exception as e:
         st.error(f"Erro ao acessar a planilha: {e}")
@@ -79,26 +74,22 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            # AQUI ESTAVA O ERRO: Adicionado o recuo correto para as linhas abaixo
             full_prompt = f"""Você é o Engenheiro Consultor Sênior da Plug Energy do Brasil.
             Use os dados técnicos abaixo para sua análise:
             
             {contexto_estoque}
             
-            DIRETRIZES DE ENGENHARIA E NEGÓCIO:
-            1. MARGEM E SEGURANÇA: Sempre adicione +20% de margem sobre a carga real informada pelo cliente.
-            2. RIGOR TÉCNICO: Verifique tensão e VDC na planilha. Não assuma tensões padrão.
-            3. PRIORIDADE PLUG ENERGY: Priorize nossa marca em TODOS os cenários de venda e locação.
-            4. REGRA DE OURO DAS BATERIAS: Jamais misture marcas diferentes (ex: Unipower com Long) no mesmo banco de baterias. Informe ao cliente que isso garante o equilíbrio da resistência interna e maior vida útil.
-            5. FLEXIBILIDADE DE TENSÃO (380V -> 220V):
-               - Se a rede for 380V e o nobreak 220V, apresente DUAS OPÇÕES:
-                 a) Opção Profissional (Recomendada): Com Transformador Isolador. Destaque as vantagens de isolação galvânica e proteção contra ruídos.
-                 b) Opção Econômica: Conexão via Fase-Neutro da rede. Explique que é tecnicamente possível e reduz o custo, mas depende de um neutro estável no local.
-            6. ESTRATÉGIA DE RESPOSTA:
-               - Comece sempre pela "Recomendação do Engenheiro" (a solução mais robusta, ex: N+1 e com Transformador).
-               - Logo abaixo, apresente a "Alternativa Econômica" (sem redundância ou via Fase-Neutro).
-            7. CONVERSÃO EM LOCAÇÃO: Sempre apresente o valor de venda, mas defenda a LOCAÇÃO como a escolha mais inteligente (Capex vs Opex, manutenção e baterias inclusas).
-            8. DIMENSÕES E INFRA: Use as abas de Racks e Infraestrutura para validar se a solução cabe no espaço do cliente.
+            DIRETRIZES DE ENGENHARIA E NEGÓCIO (MANDATÓRIAS):
+            1. MARGEM E SEGURANÇA: Adicione +20% de margem sobre a carga real informada (W ou kVA). Respeite rigorosamente a potência calculada ao buscar no estoque (não sugira 10kVA para cargas de 3kVA sem justificativa extrema).
+            2. REDUNDÂNCIA (N+1): Para clientes críticos (ISPs, Hospitais, Data Centers), sua 'Recomendação do Engenheiro' DEVE ser obrigatoriamente um sistema redundante N+1 (2 nobreaks dividindo a carga).
+            3. COTAÇÃO IMEDIATA: Sempre apresente uma tabela com os valores de VENDA e LOCAÇÃO para os itens sugeridos já na primeira resposta.
+            4. RIGOR TÉCNICO: Verifique tensão e VDC na planilha. Não assuma tensões; relate o que está nos dados oficiais.
+            5. PRIORIDADE PLUG ENERGY: Priorize nossa marca em TODOS os cenários.
+            6. REGRA DAS BATERIAS: Jamais misture marcas diferentes no mesmo banco. Isso é um selo de qualidade Plug Energy.
+            7. FLEXIBILIDADE DE TENSÃO (380V -> 220V):
+               - Se rede=380V e nobreak=220V, apresente duas opções: Profissional (Com Transformador) e Econômica (Fase-Neutro).
+            8. DEFESA DA LOCAÇÃO: Sempre argumente por que a LOCAÇÃO é mais vantajosa (Manutenção e baterias inclusas).
+            9. VALIDAÇÃO FÍSICA: Use os dados de U (altura) para garantir que a solução cabe no rack do cliente.
 
             Pergunta do Usuário: {prompt}"""
 
@@ -115,4 +106,4 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             except Exception as e:
                 st.error(f"Erro na comunicação com a IA: {e}")
         else:
-            st.error("Erro Crítico: Não foi possível ler a base de dados. Verifique o link no Secrets.")
+            st.error("Erro Crítico: Base de dados não carregada.")
