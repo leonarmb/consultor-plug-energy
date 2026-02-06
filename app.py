@@ -77,6 +77,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
+            # SEU PROMPT ORIGINAL MANTIDO INTEGRALMENTE
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
             Esta é uma ferramenta interna para técnicos e vendedores.
 
@@ -117,16 +118,30 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- LOGICA DE EXIBIÇÃO DE FOTOS AUTOMÁTICA ---
-                links_fotos = re.findall(r'LINK_FOTO: (https?://\S+)', full_response)
+                # --- LÓGICA DE EXIBIÇÃO DE FOTOS APRIMORADA ---
+                # A Regex agora é mais robusta para pegar links que podem terminar com espaços ou quebras
+                links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
+                
                 if links_fotos:
-                    with st.expander("📸 Visualização Técnica de Equipamentos", expanded=True):
-                        cols = st.columns(len(links_fotos))
-                        for i, link in enumerate(links_fotos):
-                            with cols[i]:
-                                # Tratamento de link do Google Drive para visualização direta
-                                link_direto = link.replace("file/d/", "uc?export=view&id=").replace("/view?usp=sharing", "").replace("/view", "")
-                                st.image(link_direto, use_container_width=True, caption=f"Equipamento Sugerido {i+1}")
+                    st.write("---")
+                    st.subheader("📸 Galeria de Equipamentos Sugeridos")
+                    # Remove duplicatas mantendo a ordem
+                    links_unicos = list(dict.fromkeys(links_fotos))
+                    cols = st.columns(len(links_unicos))
+                    
+                    for i, link in enumerate(links_unicos):
+                        with cols[i]:
+                            # Limpeza profunda do link do Google Drive para visualização direta
+                            # Remove parâmetros de download e força o ID para o modo 'view'
+                            clean_link = link.strip().split(' ')[0] # Garante que pega só a URL
+                            direct_link = clean_link.replace("file/d/", "uc?export=view&id=").replace("/view?usp=sharing", "").replace("/view", "").replace("&export=download", "")
+                            
+                            # Extração do ID via Regex para segurança extra se o replace falhar
+                            id_match = re.search(r'(?:id=|[dD]/|folders/|file/d/)([a-zA-Z0-9_-]{25,})', direct_link)
+                            if id_match:
+                                direct_link = f"https://drive.google.com/uc?export=view&id={id_match.group(1)}"
+                            
+                            st.image(direct_link, use_container_width=True, caption=f"Visualização {i+1}")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
