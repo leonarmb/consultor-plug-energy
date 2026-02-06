@@ -3,7 +3,7 @@ import google.generativeai as genai
 import pandas as pd
 
 # 1. Configuração da Página
-st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
+st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="wide")
 
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
@@ -24,10 +24,12 @@ with st.expander("📖 Orientações de Uso e Regras de Engenharia"):
     2. O sistema aplicará automaticamente **20% de margem** sobre a carga.
     3. Para projetos de **Missão Crítica**, a redundância N+1 será a prioridade.
     
-    **Notas Técnicas:**
-    - Cálculos de autonomia baseados em baterias de 9Ah ou superiores conforme necessidade.
-    - Prioridade para marca *Plug Energy* em todos os cenários.
-    - Verificação de tensão (VDC), dimensões (mm para U) e compatibilidade.
+    **Notas Técnicas e de Segurança:**
+    - Prioridade para marca **Plug Energy** (Garantia de peças de reposição).
+    - Verificação de **Peso (kg)**: Alertas automáticos para logística e suporte de carga.
+    - Dimensões: Conversão automática de **mm para U** (1U = 44.45mm).
+    - Verificação de profundidade: Alerta para espaço de cabos traseiros.
+    - Fotos e Manuais: Links integrados para validação física imediata.
     """)
 
 # 2. Configuração de Acesso via Secrets
@@ -75,32 +77,31 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
     with st.chat_message("assistant"):
         if contexto_estoque:
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
-            Esta é uma ferramenta interna para técnicos e vendedores.
+            Ferramenta interna para técnicos e vendedores.
 
             DADOS DE ESTOQUE:
             {contexto_estoque}
             
             DIRETRIZES TÉCNICAS MANDATÓRIAS (SIGA COM RIGOR):
-            1. POTÊNCIA REAL: Use (kVA * Fator de Potência) para validar Watts. Aplique sempre +20% de margem sobre a carga informada.
-            2. MISSÃO CRÍTICA: Se o cliente "não pode parar", o CENÁRIO IDEAL deve ser obrigatoriamente N+1 (redundante).
-            3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas de mm para U. Se a profundidade do item for > 90% do rack, emita um ALERTA sobre cabos e conectores traseiros.
-            4. PRIORIDADE MARCA: Sempre prefira Plug Energy. Argumente que temos peças de reposição imediata em estoque, tornando a solução mais segura que marcas concorrentes, mesmo que exija adaptações (como Transformadores).
-            5. BATERIAS E VDC: Verifique rigorosamente a compatibilidade de VDC. Use 'Baterias Internas' + 'Múltiplo Expansão' para o cálculo. Jamais misture marcas no mesmo banco.
-            6. PARALELISMO/ATS: Se o nobreak exigir ATS (conforme coluna Paralelo) e não for 'placa embutida', verifique nosso estoque de ATS. Se não houver compatível, inclua no orçamento como "Necessário cotar externo".
-            7. ADAPTAÇÃO DE TENSÃO (380V -> 220V): No cenário Econômico, considere Fase-Neutro (se viável). No Ideal, use sempre Transformador Isolador (Trafo).
+            1. POTÊNCIA REAL: Use (kVA * Fator de Potência) para validar Watts. Aplique sempre +20% de margem.
+            2. MISSÃO CRÍTICA: Se o cliente "não pode parar", o CENÁRIO IDEAL deve ser N+1 (redundante).
+            3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas para U. Se profundidade > 90% do rack, ALERTE sobre cabos traseiros.
+            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Se o sistema total for pesado, emita um ALERTA LOGÍSTICO (necessidade de mais pessoas, empilhadeira ou reforço no rack).
+            5. MULTIMÍDIA E FOTOS: Ao recomendar, exiba o link da 'URL_Foto_Principal' (Markdown: ![Foto](link)). Se pedirem a traseira, use 'URL_Foto_Traseira'. Forneça sempre o link da 'URL_Manual'.
+            6. PRIORIDADE MARCA: Sempre prefira Plug Energy. Argumente: temos peças de reposição imediata, superior a concorrentes mesmo com adaptações (Trafos).
+            7. BATERIAS: Use 'Baterias Internas' + 'Múltiplo Expansão'. Jamais misture marcas.
+            8. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
 
-            ESTRATÉGIA COMERCIAL:
-            - LOCAÇÃO: Priorize equipamentos 'Usados'. Use 'Novos' apenas se não houver opção.
-            - VENDA: Use apenas equipamentos 'Novos'.
-            - CUSTOS E LUCRO: Em cada cenário, apresente uma tabela: Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
-            - TOTAIS: Calcule o CUSTO TOTAL do projeto e o VALOR FINAL. Apresente o LUCRO BRUTO aproximado para o vendedor.
+            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
+            - ECONÔMICO: Menor custo, Fase-Neutro se viável, sem redundância.
+            - IDEAL: N+1 (se crítico), Isolação via Trafo, melhor proteção.
+            - EXPANSÃO: Potência superior para crescimento futuro.
 
-            GERAR SEMPRE 3 CENÁRIOS:
-            1. ECONÔMICO: Foco no menor custo.
-            2. IDEAL: O projeto perfeito, redundante (N+1) se crítico, com isolação total.
-            3. EXPANSÃO: Sugira potência maior visando crescimento futuro.
+            TABELA DE CUSTOS (Para cada cenário):
+            Apresente: Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
+            Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
-            PARECER DO ENGENHEIRO: Ao final, oriente o vendedor sobre qual cenário tem melhor margem de lucro e segurança técnica.
+            PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso.
 
             Pergunta: {prompt}"""
             
