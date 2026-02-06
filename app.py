@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import pandas as pd
+import re
 
 # 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="wide")
@@ -77,29 +78,30 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
     with st.chat_message("assistant"):
         if contexto_estoque:
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
-            Ferramenta interna para técnicos e vendedores.
+            Esta é uma ferramenta interna para técnicos e vendedores.
 
             DADOS DE ESTOQUE:
             {contexto_estoque}
             
             DIRETRIZES TÉCNICAS MANDATÓRIAS (SIGA COM RIGOR):
-            1. POTÊNCIA REAL: Use (kVA * Fator de Potência) para validar Watts. Aplique sempre +20% de margem.
+            1. POTÊNCIA REAL: Watts = (kVA * Fator de Potência). Aplique +20% de margem sobre a carga.
             2. MISSÃO CRÍTICA: Se o cliente "não pode parar", o CENÁRIO IDEAL deve ser N+1 (redundante).
             3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas para U. Se profundidade > 90% do rack, ALERTE sobre cabos traseiros.
-            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Se o sistema total for pesado, emita um ALERTA LOGÍSTICO (necessidade de mais pessoas, empilhadeira ou reforço no rack).
-            5. MULTIMÍDIA E FOTOS: Ao recomendar, exiba o link da 'URL_Foto_Principal' (Markdown: ![Foto](link)). Se pedirem a traseira, use 'URL_Foto_Traseira'. Forneça sempre o link da 'URL_Manual'.
-            6. PRIORIDADE MARCA: Sempre prefira Plug Energy. Argumente: temos peças de reposição imediata, superior a concorrentes mesmo com adaptações (Trafos).
-            7. BATERIAS: Use 'Baterias Internas' + 'Múltiplo Expansão'. Jamais misture marcas.
-            8. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
+            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Se o sistema for pesado, emita um ALERTA LOGÍSTICO (necessidade de mais pessoas, empilhadeira ou reforço no rack).
+            5. PRIORIDADE MARCA: Sempre prefira Plug Energy (temos peças de reposição imediata).
+            6. BATERIAS E VDC: Verifique compatibilidade de VDC. Jamais misture marcas. Use 'Baterias Internas' + 'Múltiplo Expansão'.
+            7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
+            8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
+            9. MULTIMÍDIA: Para cada equipamento sugerido, forneça os links: URL_Foto_Principal, URL_Foto_Frente, URL_Foto_Traseira e URL_Manual.
+               IMPORTANTE: Para que eu exiba a foto, escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '. Exemplo: LINK_FOTO: https://link.com/imagem.jpg
 
             ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
-            - ECONÔMICO: Menor custo, Fase-Neutro se viável, sem redundância.
-            - IDEAL: N+1 (se crítico), Isolação via Trafo, melhor proteção.
+            - ECONÔMICO: Menor custo, sem redundância.
+            - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
             - EXPANSÃO: Potência superior para crescimento futuro.
 
-            TABELA DE CUSTOS (Para cada cenário):
-            Apresente: Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
-            Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
+            TABELA DE CUSTOS: Para cada cenário, apresente Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
+            Ao final de cada tabela: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
             PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso.
 
@@ -114,6 +116,18 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     full_response += chunk.text
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
+                
+                # --- LOGICA DE EXIBIÇÃO DE FOTOS AUTOMÁTICA ---
+                links_fotos = re.findall(r'LINK_FOTO: (https?://\S+)', full_response)
+                if links_fotos:
+                    with st.expander("📸 Visualização Técnica de Equipamentos", expanded=True):
+                        cols = st.columns(len(links_fotos))
+                        for i, link in enumerate(links_fotos):
+                            with cols[i]:
+                                # Tratamento de link do Google Drive para visualização direta
+                                link_direto = link.replace("file/d/", "uc?export=view&id=").replace("/view?usp=sharing", "").replace("/view", "")
+                                st.image(link_direto, use_container_width=True, caption=f"Equipamento Sugerido {i+1}")
+
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
                 st.error(f"Erro na comunicação com a IA: {e}")
