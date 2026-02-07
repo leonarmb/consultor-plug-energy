@@ -9,8 +9,10 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Removido colunas extras para manter a logo centralizada no novo layout
-    st.image("logo_plugenergy.png", use_container_width=True)
+    # Uso de colunas para reduzir o tamanho visual da logo em 50% e centralizar
+    col_l, col_c, col_r = st.columns([1, 1, 1])
+    with col_c:
+        st.image("logo_plugenergy.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -92,10 +94,19 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
             9. MULTIMÍDIA: Forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
-               IMPORTANTE: Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
+               IMPORTANTE: Organize a saída de mídia exatamente assim:
+               ### 📂 MULTIMÍDIA
+               **Link Foto:** LINK_FOTO: [URL]
+               **Manual Técnico:** [Clique aqui para abrir o Manual](URL)
+               
+               Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
                REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
 
-            ESTRATÉGIA COMERCIAL (3 CENÁRIOS): Econômico, Ideal, Expansão.
+            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
+            - ECONÔMICO: Menor custo, sem redundância.
+            - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
+            - EXPANSÃO: Potência superior para crescimento futuro.
+
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
@@ -119,9 +130,9 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                 if links_fotos:
                     links_unicos = list(dict.fromkeys(links_fotos))
                     for link in links_unicos:
-                        clean_link = link.strip().rstrip('.,;')
-                        # No layout centered, a imagem já fica bem posicionada sem colunas extras
-                        st.image(clean_link, width=500, caption="Equipamento Sugerido")
+                        clean_link = link.strip().rstrip('.,;)]')
+                        # No layout centered e com width definido, a imagem fica elegante
+                        st.image(clean_link, width=450, caption="Equipamento Sugerido")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
