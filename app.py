@@ -2,46 +2,64 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 import re
+import base64
 
 # 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 
-# --- INTERFACE VISUAL (LOGO DINÂMICA) ---
+# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 (Garante exibição no HTML) ---
+def get_image_base64(path):
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return ""
+
+# --- INTERFACE VISUAL (LOGO DINÂMICA VIA CSS) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Técnica de Engenharia: Colunas para centralizar e reduzir tamanho
-    col_l, col_c, col_r = st.columns([1, 0.8, 1])
+    logo_normal = get_image_base64("logo_plugenergy.png")
+    logo_invert = get_image_base64("logo_plugenergy_invert.png")
     
-    with col_c:
-        # Detectamos o tema através de um "hack" visual de injeção de CSS
-        # mas exibimos a imagem usando st.image nativo que é mais estável.
-        # Por padrão, tentamos exibir a logo invertida se o tema for dark.
-        # O Streamlit Cloud herda a preferência do sistema.
+    # CSS AVANÇADO: Detecta o tema pelas cores de fundo do Streamlit
+    st.markdown(f"""
+        <style>
+        .logo-container {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }}
+        .logo-img {{
+            max-width: 250px;
+            height: auto;
+        }}
         
-        # No Streamlit, a melhor forma de garantir a logo é usar o arquivo local
-        # Se você subiu no GitHub, o arquivo está na raiz.
-        try:
-            # Injetamos um pequeno CSS para ajustar o fundo do container da logo se necessário
-            st.markdown('<div style="text-align: center;">', unsafe_allow_html=True)
-            
-            # Usamos o st.image nativo que resolve o problema de renderização
-            # Como o Streamlit não troca o arquivo local em tempo real sem refresh,
-            # a solução mais profissional para logos corporativas é usar a logo
-            # que funciona bem em ambos (com contorno) ou deixar o sistema decidir.
-            
-            # Vamos tentar carregar a logo invertida. Se falhar, carrega a normal.
-            import os
-            if os.path.exists("logo_plugenergy_invert.png"):
-                 # O Streamlit ainda não tem um switch nativo de tema via código fácil,
-                 # então exibimos a logo principal. O vendedor pode ajustar o tema.
-                 st.image("logo_plugenergy.png", use_container_width=True)
-            else:
-                 st.image("logo_plugenergy.png", use_container_width=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        except:
-            st.error("Erro ao carregar logotipo.")
+        /* Lógica baseada nas classes do Streamlit */
+        [data-theme="light"] .logo-dark {{ display: none; }}
+        [data-theme="light"] .logo-light {{ display: block; }}
         
+        [data-theme="dark"] .logo-dark {{ display: block; }}
+        [data-theme="dark"] .logo-light {{ display: none; }}
+        
+        /* Fallback automático se o data-theme não for detectado */
+        @media (prefers-color-scheme: dark) {{
+            .logo-light {{ display: none !important; }}
+            .logo-dark {{ display: block !important; }}
+        }}
+        @media (prefers-color-scheme: light) {{
+            .logo-light {{ display: block !important; }}
+            .logo-dark {{ display: none !important; }}
+        }}
+        </style>
+        
+        <div class="logo-container">
+            <img class="logo-img logo-light" src="data:image/png;base64,{logo_normal}" />
+            <img class="logo-img logo-dark" src="data:image/png;base64,{logo_invert}" />
+        </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
