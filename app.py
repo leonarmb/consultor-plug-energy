@@ -9,7 +9,21 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Criando colunas para reduzir o tamanho da logo (centralizada e menor)
+    # CSS para inverter cores escuras no modo Dark Mode sem afetar as cores vibrantes
+    st.markdown("""
+        <style>
+        [data-testid="stImage"] img {
+            filter: var(--logo-filter);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --logo-filter: invert(1) hue-rotate(180deg) brightness(1.5);
+            }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Colunas para reduzir a logo (centralizada e em 40% do espaço útil)
     col_l, col_c, col_r = st.columns([1, 0.8, 1])
     with col_c:
         st.image("logo_plugenergy.png", use_container_width=True)
@@ -121,8 +135,9 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- EXIBIÇÃO DE FOTOS CENTRALIZADA NO NOVO LAYOUT ---
-                links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
+                # --- BUSCA DE LINKS REFORÇADA PARA O NOVO FORMATO DO PROMPT ---
+                # Captura o link após LINK_FOTO: mesmo se houver negritos ou colchetes
+                links_fotos = re.findall(r'LINK_FOTO:\s*(?:\[)?(https?://[^\s\]]+)(?:\])?', full_response)
                 
                 if links_fotos:
                     links_unicos = list(dict.fromkeys(links_fotos))
