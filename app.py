@@ -3,16 +3,36 @@ import google.generativeai as genai
 import pandas as pd
 import re
 
-# 1. Configuração da Página - ALTERADO PARA layout="centered"
+# 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
+
+# --- FORÇAR MODO ESCURO E ESTILO (CSS) ---
+st.markdown("""
+    <style>
+    /* Força o fundo escuro e cor de texto clara em toda a aplicação */
+    .stApp {
+        background-color: #0e1117;
+        color: #fafafa;
+    }
+    /* Estilização das tabelas para o modo escuro */
+    .stMarkdown table {
+        color: #fafafa;
+    }
+    /* Títulos e divisores */
+    h1, h2, h3, hr {
+        color: #ffffff !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Uso de colunas para reduzir o tamanho visual da logo em 50% e centralizar
+    # Uso de colunas para reduzir o tamanho visual da logo e centralizar
     col_l, col_c, col_r = st.columns([1, 1, 1])
     with col_c:
-        st.image("logo_plugenergy.png", use_container_width=True)
+        # Carrega a logo com o subtítulo branco que você editou
+        st.image("logo_plugenergy_invert.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -94,7 +114,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
             9. MULTIMÍDIA: Forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
-               IMPORTANTE: Organize a saída de mídia exatamente assim:
+               IMPORTANTE: Organize os links em uma seção dedicada chamada "### 📂 MULTIMÍDIA" com a seguinte estrutura:
                ### 📂 MULTIMÍDIA
                **Link Foto:** LINK_FOTO: [URL]
                **Manual Técnico:** [Clique aqui para abrir o Manual](URL)
@@ -106,7 +126,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             - ECONÔMICO: Menor custo, sem redundância.
             - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
             - EXPANSÃO: Potência superior para crescimento futuro.
-
+            
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
@@ -124,14 +144,13 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- EXIBIÇÃO DE FOTOS CENTRALIZADA NO NOVO LAYOUT ---
+                # --- EXIBIÇÃO DE FOTOS CENTRALIZADA ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 
                 if links_fotos:
                     links_unicos = list(dict.fromkeys(links_fotos))
                     for link in links_unicos:
                         clean_link = link.strip().rstrip('.,;)]')
-                        # No layout centered e com width definido, a imagem fica elegante
                         st.image(clean_link, width=450, caption="Equipamento Sugerido")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
