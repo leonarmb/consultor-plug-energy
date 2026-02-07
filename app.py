@@ -77,7 +77,6 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            # SEU PROMPT ORIGINAL MANTIDO INTEGRALMENTE
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
             Esta é uma ferramenta interna para técnicos e vendedores.
 
@@ -93,8 +92,9 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             6. BATERIAS E VDC: Verifique compatibilidade de VDC. Jamais misture marcas. Use 'Baterias Internas' + 'Múltiplo Expansão'.
             7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
-            9. MULTIMÍDIA: Para cada equipamento sugerido, forneça os links: URL_Foto_Principal, URL_Foto_Frente, URL_Foto_Traseira e URL_Manual.
-               IMPORTANTE: Para que eu exiba a foto, escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '. Exemplo: LINK_FOTO: https://link.com/imagem.jpg
+            9. MULTIMÍDIA: Para cada equipamento sugerido, forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
+               IMPORTANTE: Para não saturar o chat, exiba apenas a 'URL_Foto_Principal'. As fotos de Frente ou Traseira devem ser enviadas APENAS se o usuário pedir especificamente.
+               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '. Exemplo: LINK_FOTO: https://link.com/imagem.jpg
 
             ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
             - ECONÔMICO: Menor custo, sem redundância.
@@ -118,30 +118,31 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- LÓGICA DE EXIBIÇÃO DE FOTOS APRIMORADA ---
-                # A Regex agora é mais robusta para pegar links que podem terminar com espaços ou quebras
+                # --- LÓGICA DE EXIBIÇÃO DE FOTOS REFORMULADA ---
+                # Captura links que começam com LINK_FOTO:
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 
                 if links_fotos:
                     st.write("---")
-                    st.subheader("📸 Galeria de Equipamentos Sugeridos")
-                    # Remove duplicatas mantendo a ordem
                     links_unicos = list(dict.fromkeys(links_fotos))
-                    cols = st.columns(len(links_unicos))
                     
-                    for i, link in enumerate(links_unicos):
-                        with cols[i]:
-                            # Limpeza profunda do link do Google Drive para visualização direta
-                            # Remove parâmetros de download e força o ID para o modo 'view'
-                            clean_link = link.strip().split(' ')[0] # Garante que pega só a URL
-                            direct_link = clean_link.replace("file/d/", "uc?export=view&id=").replace("/view?usp=sharing", "").replace("/view", "").replace("&export=download", "")
+                    for link in links_unicos:
+                        # Extração robusta do ID do Google Drive usando Regex
+                        # Procura por padrões comuns de ID do Drive (33 caracteres alfanuméricos)
+                        id_match = re.search(r'[-\w]{25,}', link)
+                        
+                        if id_match:
+                            file_id = id_match.group(0)
+                            # Formato uc (User Content) é o mais aceito para exibição direta
+                            direct_link = f"https://drive.google.com/uc?export=view&id={file_id}"
                             
-                            # Extração do ID via Regex para segurança extra se o replace falhar
-                            id_match = re.search(r'(?:id=|[dD]/|folders/|file/d/)([a-zA-Z0-9_-]{25,})', direct_link)
-                            if id_match:
-                                direct_link = f"https://drive.google.com/uc?export=view&id={id_match.group(1)}"
-                            
-                            st.image(direct_link, use_container_width=True, caption=f"Visualização {i+1}")
+                            try:
+                                st.image(direct_link, use_container_width=True, caption="Equipamento Sugerido - Plug Energy")
+                            except:
+                                st.warning(f"Não foi possível carregar a imagem diretamente. [Clique aqui para abrir a foto]({link})")
+                        else:
+                            # Caso não seja um link do Drive, tenta exibir o link original
+                            st.image(link, use_container_width=True)
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
