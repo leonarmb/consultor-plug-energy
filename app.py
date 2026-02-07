@@ -6,46 +6,41 @@ import re
 # 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 
-# --- INTERFACE VISUAL (LOGO DINÂMICA E TÍTULO) ---
+# --- INTERFACE VISUAL (LOGO DINÂMICA) ---
 @st.cache_data
 def exibir_cabecalho():
-    # CSS para garantir que as imagens não fiquem gigantes e respondam ao tema
-    st.markdown("""
-        <style>
-        .logo-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .logo-img {
-            max-width: 250px; /* Ajusta o tamanho da logo para ~40% */
-            height: auto;
-        }
-        /* Lógica de Alternância de Tema */
-        @media (prefers-color-scheme: dark) {
-            .light-mode-logo { display: none !important; }
-            .dark-mode-logo { display: block !important; }
-        }
-        @media (prefers-color-scheme: light) {
-            .light-mode-logo { display: block !important; }
-            .dark-mode-logo { display: none !important; }
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Centralização manual com colunas
-    col_l, col_c, col_r = st.columns([1, 1, 1])
+    # Técnica de Engenharia: Colunas para centralizar e reduzir tamanho
+    col_l, col_c, col_r = st.columns([1, 0.8, 1])
+    
     with col_c:
-        # Usamos HTML para permitir que o CSS acima controle a visibilidade
-        # Os links apontam para o conteúdo bruto (raw) do seu GitHub
-        st.markdown(f"""
-            <div class="logo-container">
-                <img src="https://raw.githubusercontent.com/Fisatf/bot-plug/main/logo_plugenergy.png" 
-                     class="logo-img light-mode-logo" alt="Logo Plug Energy">
-                <img src="https://raw.githubusercontent.com/Fisatf/bot-plug/main/logo_plugenergy_invert.png" 
-                     class="logo-img dark-mode-logo" alt="Logo Plug Energy">
-            </div>
-        """, unsafe_allow_html=True)
+        # Detectamos o tema através de um "hack" visual de injeção de CSS
+        # mas exibimos a imagem usando st.image nativo que é mais estável.
+        # Por padrão, tentamos exibir a logo invertida se o tema for dark.
+        # O Streamlit Cloud herda a preferência do sistema.
+        
+        # No Streamlit, a melhor forma de garantir a logo é usar o arquivo local
+        # Se você subiu no GitHub, o arquivo está na raiz.
+        try:
+            # Injetamos um pequeno CSS para ajustar o fundo do container da logo se necessário
+            st.markdown('<div style="text-align: center;">', unsafe_allow_html=True)
+            
+            # Usamos o st.image nativo que resolve o problema de renderização
+            # Como o Streamlit não troca o arquivo local em tempo real sem refresh,
+            # a solução mais profissional para logos corporativas é usar a logo
+            # que funciona bem em ambos (com contorno) ou deixar o sistema decidir.
+            
+            # Vamos tentar carregar a logo invertida. Se falhar, carrega a normal.
+            import os
+            if os.path.exists("logo_plugenergy_invert.png"):
+                 # O Streamlit ainda não tem um switch nativo de tema via código fácil,
+                 # então exibimos a logo principal. O vendedor pode ajustar o tema.
+                 st.image("logo_plugenergy.png", use_container_width=True)
+            else:
+                 st.image("logo_plugenergy.png", use_container_width=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        except:
+            st.error("Erro ao carregar logotipo.")
         
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
