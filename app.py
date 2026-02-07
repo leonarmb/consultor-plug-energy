@@ -9,10 +9,10 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # CSS para inverter cores escuras no modo Dark Mode sem afetar as cores vibrantes
+    # CSS Ajustado: O filtro de inversão agora só afeta a imagem dentro da div 'header-logo'
     st.markdown("""
         <style>
-        [data-testid="stImage"] img {
+        .header-logo img {
             filter: var(--logo-filter);
         }
         @media (prefers-color-scheme: dark) {
@@ -26,7 +26,11 @@ def exibir_cabecalho():
     # Colunas para reduzir a logo (centralizada e em 40% do espaço útil)
     col_l, col_c, col_r = st.columns([1, 0.8, 1])
     with col_c:
+        # Colocamos a logo dentro de uma div com classe específica para o CSS não pegar as fotos dos nobreaks
+        st.markdown('<div class="header-logo">', unsafe_allow_html=True)
         st.image("logo_plugenergy.png", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -113,10 +117,10 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                - **Manual Técnico:** [Clique aqui para abrir o Manual](URL)
                Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
 
-            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
-            - ECONÔMICO: Menor custo, sem redundância.
-            - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
-            - EXPANSÃO: Potência superior para crescimento futuro.
+            ESTRATEGIA COMERCIAL (3 CENARIOS):
+            - ECONOMICO: Menor custo, sem redundancia.
+            - IDEAL: Redundante (N+1) se for critico, melhor protecao (Trafo).
+            - EXPANSAO: Potencia superior para crescimento futuro.
 
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
@@ -135,14 +139,14 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- BUSCA DE LINKS REFORÇADA PARA O NOVO FORMATO DO PROMPT ---
-                # Captura o link após LINK_FOTO: mesmo se houver negritos ou colchetes
+                # --- BUSCA DE LINKS REFORÇADA ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(?:\[)?(https?://[^\s\]]+)(?:\])?', full_response)
                 
                 if links_fotos:
                     links_unicos = list(dict.fromkeys(links_fotos))
                     for link in links_unicos:
                         clean_link = link.strip().rstrip('.,;)]')
+                        # Exibe a foto sem o filtro de inversão (cores reais)
                         st.image(clean_link, width=500, caption="Equipamento Sugerido")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
