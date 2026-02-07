@@ -3,14 +3,16 @@ import google.generativeai as genai
 import pandas as pd
 import re
 
-# 1. Configuração da Página - ALTERADO PARA layout="centered"
+# 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Removido colunas extras para manter a logo centralizada no novo layout
-    st.image("logo_plugenergy.png", use_container_width=True)
+    # Criando colunas para reduzir o tamanho da logo (centralizada e menor)
+    col_l, col_c, col_r = st.columns([1, 0.8, 1])
+    with col_c:
+        st.image("logo_plugenergy.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -92,10 +94,12 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
             9. MULTIMÍDIA: Forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
-               IMPORTANTE: Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
-               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
+               IMPORTANTE: Organize os links em uma seção dedicada chamada "### 📂 MULTIMÍDIA" com a seguinte estrutura:
+               - **Link Foto:** LINK_FOTO: [URL]
+               - **Manual Técnico:** [Clique aqui para abrir o Manual](URL)
+               Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
 
-                        ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
+            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
             - ECONÔMICO: Menor custo, sem redundância.
             - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
             - EXPANSÃO: Potência superior para crescimento futuro.
@@ -123,8 +127,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                 if links_fotos:
                     links_unicos = list(dict.fromkeys(links_fotos))
                     for link in links_unicos:
-                        clean_link = link.strip().rstrip('.,;')
-                        # No layout centered, a imagem já fica bem posicionada sem colunas extras
+                        clean_link = link.strip().rstrip('.,;)]')
                         st.image(clean_link, width=500, caption="Equipamento Sugerido")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
