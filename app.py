@@ -95,11 +95,11 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                IMPORTANTE: Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
                REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
 
-            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
+                        ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
             - ECONÔMICO: Menor custo, sem redundância.
             - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
             - EXPANSÃO: Potência superior para crescimento futuro.
-            
+
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
