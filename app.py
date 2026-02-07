@@ -3,15 +3,14 @@ import google.generativeai as genai
 import pandas as pd
 import re
 
-# 1. Configuração da Página
-st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="wide")
+# 1. Configuração da Página - ALTERADO PARA layout="centered"
+st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("logo_plugenergy.png", use_container_width=True)
+    # Removido colunas extras para manter a logo centralizada no novo layout
+    st.image("logo_plugenergy.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -92,17 +91,17 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             6. BATERIAS E VDC: Verifique compatibilidade de VDC. Jamais misture marcas. Use 'Baterias Internas' + 'Múltiplo Expansão'.
             7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
-            9. MULTIMÍDIA: Para cada equipamento sugerido, forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
-               IMPORTANTE: Para não saturar o chat, exiba apenas a 'URL_Foto_Principal'. As fotos de Frente ou Traseira devem ser enviadas APENAS se o usuário pedir especificamente.
-               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '. Exemplo: LINK_FOTO: http://link.com/imagem.jpg
+            9. MULTIMÍDIA: Forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
+               IMPORTANTE: Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
+               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
 
-            ESTRATEGIA COMERCIAL (3 CENARIOS):
-            - ECONOMICO: Menor custo, sem redundancia.
-            - IDEAL: Redundante (N+1) se for critico, melhor protecao (Trafo).
-            - EXPANSAO: Potencia superior para crescimento futuro.
-
-            TABELA DE CUSTOS: Para cada cenário, apresente Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
-            Ao final de cada tabela: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
+            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
+            - ECONÔMICO: Menor custo, sem redundância.
+            - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
+            - EXPANSÃO: Potência superior para crescimento futuro.
+            
+            TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
+            Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
             PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso.
 
@@ -118,19 +117,15 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- LOGICA DE EXIBICAO DE FOTOS DIRETA ---
+                # --- EXIBIÇÃO DE FOTOS CENTRALIZADA NO NOVO LAYOUT ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 
                 if links_fotos:
-                    st.write("---")
                     links_unicos = list(dict.fromkeys(links_fotos))
                     for link in links_unicos:
                         clean_link = link.strip().rstrip('.,;')
-                        try:
-                            # Agora o Streamlit carrega direto do seu site
-                            st.image(clean_link, use_container_width=True, caption="Equipamento Sugerido - Plug Energy")
-                        except:
-                            st.warning(f"Imagem disponível no link: [Ver Foto]({clean_link})")
+                        # No layout centered, a imagem já fica bem posicionada sem colunas extras
+                        st.image(clean_link, width=500, caption="Equipamento Sugerido")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
