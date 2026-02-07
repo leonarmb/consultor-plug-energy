@@ -77,7 +77,6 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            # SEU PROMPT ORIGINAL MANTIDO INTEGRALMENTE
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
             Esta é uma ferramenta interna para técnicos e vendedores.
 
@@ -95,12 +94,12 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
             9. MULTIMÍDIA: Para cada equipamento sugerido, forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
                IMPORTANTE: Para não saturar o chat, exiba apenas a 'URL_Foto_Principal'. As fotos de Frente ou Traseira devem ser enviadas APENAS se o usuário pedir especificamente.
-               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '. Exemplo: LINK_FOTO: https://link.com/imagem.jpg
+               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '. Exemplo: LINK_FOTO: http://link.com/imagem.jpg
 
-            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
-            - ECONÔMICO: Menor custo, sem redundância.
-            - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
-            - EXPANSÃO: Potência superior para crescimento futuro.
+            ESTRATEGIA COMERCIAL (3 CENARIOS):
+            - ECONOMICO: Menor custo, sem redundancia.
+            - IDEAL: Redundante (N+1) se for critico, melhor protecao (Trafo).
+            - EXPANSAO: Potencia superior para crescimento futuro.
 
             TABELA DE CUSTOS: Para cada cenário, apresente Item | Qtd | Condição | Custo Unitário (Interno) | Valor Venda ou Locação.
             Ao final de cada tabela: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
@@ -119,37 +118,19 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- LÓGICA DE EXIBIÇÃO DE FOTOS (DRIVE OU WEB DIRETA) ---
+                # --- LOGICA DE EXIBICAO DE FOTOS DIRETA ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 
                 if links_fotos:
                     st.write("---")
                     links_unicos = list(dict.fromkeys(links_fotos))
-                    
-                    # Se tivermos muitas fotos, usamos colunas. Se for uma só, centralizamos.
-                    num_cols = min(len(links_unicos), 3)
-                    cols = st.columns(num_cols)
-                    
-                    for i, link in enumerate(links_unicos):
-                        # Limpeza para remover pontos ou caracteres que a IA possa ter grudado no link
+                    for link in links_unicos:
                         clean_link = link.strip().rstrip('.,;')
-                        
-                        # Se for link do Google Drive, fazemos a conversão forçada
-                        if "drive.google.com" in clean_link:
-                            id_match = re.search(r'[-\w]{25,}', clean_link)
-                            if id_match:
-                                display_link = f"https://drive.google.com/uc?export=view&id={id_match.group(0)}"
-                            else:
-                                display_link = clean_link
-                        else:
-                            # Se for link de site comum, usa direto!
-                            display_link = clean_link
-                            
-                        with cols[i % num_cols]:
-                            try:
-                                st.image(display_link, use_container_width=True, caption=f"Equipamento Sugerido")
-                            except:
-                                st.error(f"Erro ao carregar imagem. [Acesse aqui]({clean_link})")
+                        try:
+                            # Agora o Streamlit carrega direto do seu site
+                            st.image(clean_link, use_container_width=True, caption="Equipamento Sugerido - Plug Energy")
+                        except:
+                            st.warning(f"Imagem disponível no link: [Ver Foto]({clean_link})")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
