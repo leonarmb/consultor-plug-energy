@@ -9,49 +9,43 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 # --- INTERFACE VISUAL (LOGO DINÂMICA E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Colunas para reduzir a logo (centralizada e em 40% do espaço útil)
-    col_l, col_c, col_r = st.columns([1, 0.8, 1])
-    
+    # CSS para garantir que as imagens não fiquem gigantes e respondam ao tema
+    st.markdown("""
+        <style>
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-img {
+            max-width: 250px; /* Ajusta o tamanho da logo para ~40% */
+            height: auto;
+        }
+        /* Lógica de Alternância de Tema */
+        @media (prefers-color-scheme: dark) {
+            .light-mode-logo { display: none !important; }
+            .dark-mode-logo { display: block !important; }
+        }
+        @media (prefers-color-scheme: light) {
+            .light-mode-logo { display: block !important; }
+            .dark-mode-logo { display: none !important; }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Centralização manual com colunas
+    col_l, col_c, col_r = st.columns([1, 1, 1])
     with col_c:
-        # Detecta o tema e seleciona a logo correta
-        # Usamos uma tentativa de carregar o invertido se o arquivo existir, 
-        # caso contrário, mantemos o padrão.
-        try:
-            # Lógica CSS para alternar as imagens via HTML (mais confiável para detecção de tema do sistema)
-            st.markdown(
-                """
-                <style>
-                .logo-container {
-                    display: flex;
-                    justify-content: center;
-                }
-                .logo-img {
-                    width: 100%;
-                }
-                /* Seletor para Modo Escuro do Sistema */
-                @media (prefers-color-scheme: dark) {
-                    .logo-light { display: none; }
-                    .logo-dark { display: block; }
-                }
-                /* Seletor para Modo Claro do Sistema */
-                @media (prefers-color-scheme: light) {
-                    .logo-light { display: block; }
-                    .logo-dark { display: none; }
-                }
-                </style>
-                <div class="logo-container">
-                    <img class="logo-img logo-light" src="https://raw.githubusercontent.com/sua-conta/seu-repo/main/logo_plugenergy.png">
-                    <img class="logo-img logo-dark" src="https://raw.githubusercontent.com/sua-conta/seu-repo/main/logo_plugenergy_invert.png">
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            # Nota: Substitua 'sua-conta/seu-repo' pelos seus dados reais se os links falharem, 
-            # OU use o método garantido abaixo:
-            
-        except:
-            # Fallback seguro: se o HTML falhar, exibe a logo padrão
-            st.image("logo_plugenergy.png", use_container_width=True)
+        # Usamos HTML para permitir que o CSS acima controle a visibilidade
+        # Os links apontam para o conteúdo bruto (raw) do seu GitHub
+        st.markdown(f"""
+            <div class="logo-container">
+                <img src="https://raw.githubusercontent.com/Fisatf/bot-plug/main/logo_plugenergy.png" 
+                     class="logo-img light-mode-logo" alt="Logo Plug Energy">
+                <img src="https://raw.githubusercontent.com/Fisatf/bot-plug/main/logo_plugenergy_invert.png" 
+                     class="logo-img dark-mode-logo" alt="Logo Plug Energy">
+            </div>
+        """, unsafe_allow_html=True)
         
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
