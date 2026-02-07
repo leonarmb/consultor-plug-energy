@@ -77,6 +77,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
+            # SEU PROMPT ORIGINAL MANTIDO INTEGRALMENTE
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
             Esta é uma ferramenta interna para técnicos e vendedores.
 
@@ -118,31 +119,37 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- LÓGICA DE EXIBIÇÃO DE FOTOS REFORMULADA ---
-                # Captura links que começam com LINK_FOTO:
+                # --- LÓGICA DE EXIBIÇÃO DE FOTOS (DRIVE OU WEB DIRETA) ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 
                 if links_fotos:
                     st.write("---")
                     links_unicos = list(dict.fromkeys(links_fotos))
                     
-                    for link in links_unicos:
-                        # Extração robusta do ID do Google Drive usando Regex
-                        # Procura por padrões comuns de ID do Drive (33 caracteres alfanuméricos)
-                        id_match = re.search(r'[-\w]{25,}', link)
+                    # Se tivermos muitas fotos, usamos colunas. Se for uma só, centralizamos.
+                    num_cols = min(len(links_unicos), 3)
+                    cols = st.columns(num_cols)
+                    
+                    for i, link in enumerate(links_unicos):
+                        # Limpeza para remover pontos ou caracteres que a IA possa ter grudado no link
+                        clean_link = link.strip().rstrip('.,;')
                         
-                        if id_match:
-                            file_id = id_match.group(0)
-                            # Formato uc (User Content) é o mais aceito para exibição direta
-                            direct_link = f"https://drive.google.com/uc?export=view&id={file_id}"
-                            
-                            try:
-                                st.image(direct_link, use_container_width=True, caption="Equipamento Sugerido - Plug Energy")
-                            except:
-                                st.warning(f"Não foi possível carregar a imagem diretamente. [Clique aqui para abrir a foto]({link})")
+                        # Se for link do Google Drive, fazemos a conversão forçada
+                        if "drive.google.com" in clean_link:
+                            id_match = re.search(r'[-\w]{25,}', clean_link)
+                            if id_match:
+                                display_link = f"https://drive.google.com/uc?export=view&id={id_match.group(0)}"
+                            else:
+                                display_link = clean_link
                         else:
-                            # Caso não seja um link do Drive, tenta exibir o link original
-                            st.image(link, use_container_width=True)
+                            # Se for link de site comum, usa direto!
+                            display_link = clean_link
+                            
+                        with cols[i % num_cols]:
+                            try:
+                                st.image(display_link, use_container_width=True, caption=f"Equipamento Sugerido")
+                            except:
+                                st.error(f"Erro ao carregar imagem. [Acesse aqui]({clean_link})")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
