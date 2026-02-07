@@ -9,32 +9,49 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 # --- INTERFACE VISUAL (LOGO DINÂMICA E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # CSS para alternar entre as duas logos dependendo do tema do navegador
-    st.markdown("""
-        <style>
-        /* Esconde a logo invertida por padrão */
-        .logo-dark { display: none; }
-        
-        /* Se o usuário estiver em modo escuro */
-        @media (prefers-color-scheme: dark) {
-            .logo-light { display: none; }
-            .logo-dark { display: block; }
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
+    # Colunas para reduzir a logo (centralizada e em 40% do espaço útil)
     col_l, col_c, col_r = st.columns([1, 0.8, 1])
+    
     with col_c:
-        # Renderizamos as duas logos; o CSS acima decide qual exibir
-        st.markdown(f"""
-            <div class="logo-light"><img src="https://raw.githubusercontent.com/{st.secrets.get('GITHUB_USER', 'seu_usuario')}/{st.secrets.get('GITHUB_REPO', 'seu_repositorio')}/main/logo_plugenergy.png" style="width:100%"></div>
-            <div class="logo-dark"><img src="https://raw.githubusercontent.com/{st.secrets.get('GITHUB_USER', 'seu_usuario')}/{st.secrets.get('GITHUB_REPO', 'seu_repositorio')}/main/logo_plugenergy_invert.png" style="width:100%"></div>
-        """, unsafe_allow_html=True)
-        
-        # Fallback caso os links acima falhem, mantemos o comando st.image simples para garantir a exibição local
-        # Se preferir usar os arquivos locais do repositório, use esta lógica simplificada abaixo:
-        # Nota: O Streamlit não troca o arquivo local dinamicamente apenas com st.image, 
-        # por isso o CSS acima é a melhor rota.
+        # Detecta o tema e seleciona a logo correta
+        # Usamos uma tentativa de carregar o invertido se o arquivo existir, 
+        # caso contrário, mantemos o padrão.
+        try:
+            # Lógica CSS para alternar as imagens via HTML (mais confiável para detecção de tema do sistema)
+            st.markdown(
+                """
+                <style>
+                .logo-container {
+                    display: flex;
+                    justify-content: center;
+                }
+                .logo-img {
+                    width: 100%;
+                }
+                /* Seletor para Modo Escuro do Sistema */
+                @media (prefers-color-scheme: dark) {
+                    .logo-light { display: none; }
+                    .logo-dark { display: block; }
+                }
+                /* Seletor para Modo Claro do Sistema */
+                @media (prefers-color-scheme: light) {
+                    .logo-light { display: block; }
+                    .logo-dark { display: none; }
+                }
+                </style>
+                <div class="logo-container">
+                    <img class="logo-img logo-light" src="https://raw.githubusercontent.com/sua-conta/seu-repo/main/logo_plugenergy.png">
+                    <img class="logo-img logo-dark" src="https://raw.githubusercontent.com/sua-conta/seu-repo/main/logo_plugenergy_invert.png">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            # Nota: Substitua 'sua-conta/seu-repo' pelos seus dados reais se os links falharem, 
+            # OU use o método garantido abaixo:
+            
+        except:
+            # Fallback seguro: se o HTML falhar, exibe a logo padrão
+            st.image("logo_plugenergy.png", use_container_width=True)
         
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
