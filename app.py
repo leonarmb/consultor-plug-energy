@@ -2,64 +2,22 @@ import streamlit as st
 import google.generativeai as genai
 import pandas as pd
 import re
-import base64
 
 # 1. Configuração da Página
 st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layout="centered")
 
-# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 (Garante exibição no HTML) ---
-def get_image_base64(path):
-    try:
-        with open(path, "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except:
-        return ""
-
-# --- INTERFACE VISUAL (LOGO DINÂMICA VIA CSS) ---
-@st.cache_data
+# --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 def exibir_cabecalho():
-    logo_normal = get_image_base64("logo_plugenergy.png")
-    logo_invert = get_image_base64("logo_plugenergy_invert.png")
-    
-    # CSS AVANÇADO: Detecta o tema pelas cores de fundo do Streamlit
-    st.markdown(f"""
-        <style>
-        .logo-container {{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-        }}
-        .logo-img {{
-            max-width: 250px;
-            height: auto;
-        }}
-        
-        /* Lógica baseada nas classes do Streamlit */
-        [data-theme="light"] .logo-dark {{ display: none; }}
-        [data-theme="light"] .logo-light {{ display: block; }}
-        
-        [data-theme="dark"] .logo-dark {{ display: block; }}
-        [data-theme="dark"] .logo-light {{ display: none; }}
-        
-        /* Fallback automático se o data-theme não for detectado */
-        @media (prefers-color-scheme: dark) {{
-            .logo-light {{ display: none !important; }}
-            .logo-dark {{ display: block !important; }}
-        }}
-        @media (prefers-color-scheme: light) {{
-            .logo-light {{ display: block !important; }}
-            .logo-dark {{ display: none !important; }}
-        }}
-        </style>
-        
-        <div class="logo-container">
-            <img class="logo-img logo-light" src="data:image/png;base64,{logo_normal}" />
-            <img class="logo-img logo-dark" src="data:image/png;base64,{logo_invert}" />
-        </div>
-    """, unsafe_allow_html=True)
-    
+    # Criando colunas para reduzir e centralizar a logo
+    col_l, col_c, col_r = st.columns([1, 0.6, 1])
+    with col_c:
+        # Toggle para o usuário avisar se prefere a logo para modo escuro
+        modo_escuro = st.toggle("Ativar logo para modo escuro", value=False)
+        if modo_escuro:
+            st.image("logo_plugenergy_invert.png", use_container_width=True)
+        else:
+            st.image("logo_plugenergy.png", use_container_width=True)
+            
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -168,14 +126,14 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- BUSCA DE LINKS REFORÇADA ---
-                links_fotos = re.findall(r'LINK_FOTO:\s*(?:\[)?(https?://[^\s\]]+)(?:\])?', full_response)
+                # --- BUSCA DE LINKS REFORÇADA (Pega links mesmo com formatação MD) ---
+                links_fotos = re.findall(r'LINK_FOTO:\s*(?:\[)?(https?://[^\s\]\n]+)(?:\])?', full_response)
                 
                 if links_fotos:
                     links_unicos = list(dict.fromkeys(links_fotos))
                     for link in links_unicos:
                         clean_link = link.strip().rstrip('.,;)]')
-                        st.image(clean_link, width=500, caption="Equipamento Sugerido")
+                        st.image(clean_link, width=450, caption="Equipamento Sugerido - Plug Energy")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
