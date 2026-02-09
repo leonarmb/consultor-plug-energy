@@ -9,49 +9,43 @@ st.set_page_config(page_title="Plug Energy - Consultor", page_icon="🔋", layou
 # --- FORÇAR MODO ESCURO E ESTILO (CSS) ---
 st.markdown("""
     <style>
-    /* Força o fundo escuro e cor de texto clara em toda a aplicação */
-    .stApp {
-        background-color: #0e1117;
-        color: #fafafa;
-    }
-    /* Estilização das tabelas para o modo escuro */
-    .stMarkdown table {
-        color: #fafafa;
-    }
-    /* Títulos e divisores */
-    h1, h2, h3, hr {
-        color: #ffffff !important;
-    }
+    .stApp { background-color: #0e1117; color: #fafafa; }
+    .stMarkdown table { color: #fafafa; }
+    h1, h2, h3, hr { color: #ffffff !important; }
+    /* Estilização do seletor de modo */
+    .stRadio [data-testid="stWidgetLabel"] p { color: #ffffff; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- INTERFACE VISUAL (LOGO E TÍTULO) ---
 @st.cache_data
 def exibir_cabecalho():
-    # Uso de colunas para reduzir o tamanho visual da logo e centralizar
     col_l, col_c, col_r = st.columns([1, 1, 1])
     with col_c:
-        # Carrega a logo com o subtítulo branco que você editou
         st.image("logo_plugenergy_invert.png", use_container_width=True)
     st.markdown("<h1 style='text-align: center;'>Consultor Técnico de Engenharia</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
 exibir_cabecalho()
 
+# --- SELETOR DE MODO DE OPERAÇÃO ---
+if "modo_bot" not in st.session_state:
+    st.session_state.modo_bot = "Consulta Técnica"
+
+st.sidebar.title("Configurações do Bot")
+modo_escolhido = st.sidebar.radio(
+    "Selecione o objetivo da conversa:",
+    ["Consulta Técnica", "Dimensionamento de Projeto"],
+    index=0 if st.session_state.modo_bot == "Consulta Técnica" else 1
+)
+st.session_state.modo_bot = modo_escolhido
+
 # --- GUIA DE USO (EXPANSÍVEL) ---
 with st.expander("📖 Orientações de Uso e Regras de Engenharia"):
-    st.info("""
-    **Como utilizar:**
-    1. Descreva a carga total ou o modelo de nobreak desejado.
-    2. O sistema aplicará automaticamente **20% de margem** sobre a carga.
-    3. Para projetos de **Missão Crítica**, a redundância N+1 será a prioridade.
-    
-    **Notas Técnicas e de Segurança:**
-    - Prioridade para marca **Plug Energy** (Garantia de peças de reposição).
-    - Verificação de **Peso (kg)**: Alertas automáticos para logística e suporte de carga.
-    - Dimensões: Conversão automática de **mm para U** (1U = 44.45mm).
-    - Verificação de profundidade: Alerta para espaço de cabos traseiros.
-    - Fotos e Manuais: Links integrados para validação física imediata.
+    st.info(f"**Modo Ativo:** {st.session_state.modo_bot}")
+    st.write("""
+    1. **Consulta Técnica:** Respostas diretas sobre estoque, preços e dúvidas pontuais.
+    2. **Dimensionamento:** Análise completa com 3 cenários e tabelas financeiras.
     """)
 
 # 2. Configuração de Acesso via Secrets
@@ -92,14 +86,40 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
+    # Lógica simples de troca de modo por texto
+    if "projeto" in prompt.lower() and st.session_state.modo_bot == "Consulta Técnica":
+        st.session_state.modo_bot = "Dimensionamento de Projeto"
+        st.info("Alternando automaticamente para modo 'Dimensionamento de Projeto'.")
+    elif ("estoque" in prompt.lower() or "informação" in prompt.lower()) and st.session_state.modo_bot == "Dimensionamento de Projeto":
+        st.session_state.modo_bot = "Consulta Técnica"
+        st.info("Alternando automaticamente para modo 'Consulta Técnica'.")
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
         if contexto_estoque:
+            # --- DEFINIÇÃO DO COMPORTAMENTO DINÂMICO ---
+            if st.session_state.modo_bot == "Consulta Técnica":
+                instrucao_comportamento = """
+                COMPORTAMENTO: Responda de forma direta e concisa apenas o que foi perguntado. 
+                - Se pedirem estoque, informe apenas quantidades e estados (novo/usado).
+                - Se pedirem sobre um modelo, resuma as características cruciais e OBSERVAÇÕES.
+                - NÃO crie os 3 cenários comerciais. NÃO crie tabelas financeiras completas a menos que solicitado.
+                - Siga as regras de engenharia para tirar dúvidas.
+                """
+            else:
+                instrucao_comportamento = """
+                COMPORTAMENTO: Atue como Consultor de Projetos.
+                - Sempre apresente os 3 CENÁRIOS (Econômico, Ideal, Expansão).
+                - Crie a TABELA DE CUSTOS completa e o PARECER DO ENGENHEIRO.
+                """
+
             full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
             Esta é uma ferramenta interna para técnicos e vendedores.
+
+            {instrucao_comportamento}
 
             DADOS DE ESTOQUE:
             {contexto_estoque}
@@ -114,7 +134,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
             8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
             9. MULTIMÍDIA: Forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
-               IMPORTANTE: Organize os links em uma seção dedicada chamada "### 📂 MULTIMÍDIA" com a seguinte estrutura:
+               IMPORTANTE: Organize a saída de mídia exatamente assim:
                ### 📂 MULTIMÍDIA
                **Link Foto:** LINK_FOTO: [URL]
                **Manual Técnico:** [Clique aqui para abrir o Manual](URL)
@@ -122,11 +142,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
                REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
 
-            ESTRATÉGIA COMERCIAL (3 CENÁRIOS):
-            - ECONÔMICO: Menor custo, sem redundância.
-            - IDEAL: Redundante (N+1) se for crítico, melhor proteção (Trafo).
-            - EXPANSÃO: Potência superior para crescimento futuro.
-            
+            ESTRATEGIA COMERCIAL (3 CENARIOS): Econômico, Ideal, Expansão.
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
@@ -144,7 +160,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- EXIBIÇÃO DE FOTOS CENTRALIZADA ---
+                # --- EXIBIÇÃO DE FOTOS ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 
                 if links_fotos:
