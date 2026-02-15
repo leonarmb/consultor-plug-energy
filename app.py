@@ -1,9 +1,3 @@
-# ==================================================================================
-# ATENÇÃO DESENVOLVEDOR GEMINI: JAMAIS ELIMINAR OU SIMPLIFICAR NENHUMA DIRETRIZ 
-# TÉCNICA OU ELEMENTO DE INTELIGÊNCIA DESTE BOT. CADA REGRA É ESSENCIAL.
-# MANTENHA A LISTA DE 10 DIRETRIZES TÉCNICAS E A LÓGICA DE MEMÓRIA SEMPRE ATIVAS.
-# ==================================================================================
-
 import streamlit as st
 import google.generativeai as genai
 import pandas as pd
@@ -18,10 +12,8 @@ st.markdown("""
     .stApp { background-color: #0e1117; color: #fafafa; }
     .stMarkdown table { color: #fafafa; }
     h1, h2, h3, hr { color: #ffffff !important; }
-    /* Estilização dos botões e rádio */
     .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #262730; color: white; border: 1px solid #464b5d; }
     .stButton>button:hover { border: 1px solid #ffffff; color: #ffffff; }
-    .stRadio [data-testid="stWidgetLabel"] p { color: #ffffff; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -42,7 +34,7 @@ if "dados_projeto" not in st.session_state: st.session_state.dados_projeto = ""
 if "modo_bot" not in st.session_state: st.session_state.modo_bot = "Consulta Técnica"
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# Sidebar com controles
+# Sidebar
 with st.sidebar:
     st.title("Configurações")
     st.session_state.modo_bot = st.radio("Objetivo do Atendimento:", ["Consulta Técnica", "Dimensionamento de Projeto"])
@@ -61,7 +53,7 @@ try:
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel('gemini-3-flash-preview')
 except:
-    st.error("Erro técnico: Verifique as chaves de API nos Secrets.")
+    st.error("Erro técnico: Chaves de API não encontradas.")
     st.stop()
 
 @st.cache_data(ttl=60)
@@ -78,33 +70,30 @@ def carregar_estoque_completo():
 
 contexto_estoque = carregar_estoque_completo()
 
-# --- MOTOR DE RESPOSTA ESTABILIZADO ---
+# --- MOTOR DE RESPOSTA ---
 def processar_chat(pergunta_usuario):
-    # Travar contexto de projeto no primeiro input
+    # Se for o início de um dimensionamento, travar o contexto do projeto
     if st.session_state.modo_bot == "Dimensionamento de Projeto" and not st.session_state.projeto_ativo:
         st.session_state.projeto_ativo = True
         st.session_state.dados_projeto = pergunta_usuario
 
     st.session_state.messages.append({"role": "user", "content": pergunta_usuario})
     
-    # Comportamento Dinâmico (Lógica de Seguimento Blindada)
+    # Definição de Comportamento Dinâmico (Lógica de Seguimento)
     if st.session_state.modo_bot == "Consulta Técnica":
-        comportamento = "Responda de forma curta, técnica e direta. Informe estoque e características sem criar cenários comerciais."
+        comportamento = "Responda de forma curta, técnica e direta. Informe estoque e características sem criar cenários."
     elif re.search(r'(cenário|cenario)\s*[1-3]', pergunta_usuario.lower()):
         num = re.findall(r'[1-3]', pergunta_usuario)[0]
         comportamento = f"""O usuário ESCOLHEU detalhar o CENÁRIO {num} do projeto: {st.session_state.dados_projeto}.
-        REGRAS DE OURO:
-        1. Use EXATAMENTE os mesmos modelos de nobreak sugeridos inicialmente para este cenário {num}.
-        2. Mantenha a modalidade (Venda ou Locação) e os dados de carga fielmente.
-        3. Apresente Tabela de Custos (Custo Unitário), Valor Final e o LUCRO BRUTO da operação.
-        4. NÃO ofereça gerar documentos externos (PDF/Contratos)."""
+        - Foque APENAS nos equipamentos e modalidade (Locação ou Venda) do cenário {num}.
+        - Apresente Tabela de Custos (Custo Unitário), Valor Final e o LUCRO BRUTO da operação.
+        - Seja o braço direito do vendedor para o fechamento. NÃO ofereça gerar documentos externos (PDF/Contratos)."""
     else:
-        comportamento = f"""Atue como Consultor Estrategista para o projeto: '{st.session_state.dados_projeto}'.
-        - Apresente 3 CENÁRIOS: ECONÔMICO (Menor custo), IDEAL (Redundante N+1) e EXPANSÃO (Mais que perfeito/Futuro).
-        - Mantenha os modelos distintos entre os cenários.
+        comportamento = f"""Atue como Consultor Estrategista. Para o projeto '{st.session_state.dados_projeto}', apresente:
+        - 3 CENÁRIOS: ECONÔMICO (Baixo custo), IDEAL (Redundante N+1) e EXPANSÃO (Mais que perfeito/Futuro).
         - Crie UMA TABELA INDIVIDUAL para cada cenário com o Valor Total ao final de cada uma."""
 
-    # O PROMPT MESTRE (AS 10 DIRETRIZES TÉCNICAS)
+    # O PROMPT MESTRE (TODAS AS DIRETRIZES REUNIDAS)
     prompt_completo = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil.
     DADOS DE ESTOQUE ATUALIZADOS:
     {contexto_estoque}
@@ -112,8 +101,8 @@ def processar_chat(pergunta_usuario):
     CONTEXTO DE OPERAÇÃO:
     {comportamento}
 
-    DIRETRIZES TÉCNICAS MANDATÓRIAS (SIGA COM RIGOR):
-    1. POTÊNCIA REAL: Watts = kVA * Fator de Potência. Aplique SEMPRE +20% de margem sobre a carga real.
+    DIRETRIZES TÉCNICAS MANDATÓRIAS (NUNCA IGNORE):
+    1. POTÊNCIA: Watts = kVA * Fator de Potência. Aplique SEMPRE +20% de margem sobre a carga real.
     2. MISSÃO CRÍTICA: Se a aplicação não pode parar, o Cenário Ideal DEVE ser N+1 (Redundante via ATS ou Paralelismo).
     3. DIMENSÕES: 1U = 44.45mm. Alerte sobre profundidade > 90% do rack (espaço para cabos).
     4. LOGÍSTICA: Alerte sobre peso elevado (>30kg requer trilhos, >60kg requer reforço no piso/empilhadeira).
@@ -138,42 +127,39 @@ def processar_chat(pergunta_usuario):
         response = model.generate_content(prompt_completo)
         st.session_state.messages.append({"role": "assistant", "content": response.text})
     except Exception as e:
-        st.error(f"Erro na comunicação com a IA: {e}")
+        st.error(f"Erro na geração da resposta: {e}")
 
-# --- RENDERIZAÇÃO DO CHAT ---
+# --- RENDERIZAÇÃO DO CHAT E IMAGENS ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg["role"] == "assistant":
-            # Filtro de Fotos Robusto
+            # Regex reforçado para capturar links mesmo com caracteres especiais ao redor
             links = re.findall(r'LINK_FOTO:\s*(https?://\S+)', msg["content"])
             for link in list(dict.fromkeys(links)):
                 url_limpa = link.strip().split(' ')[0].rstrip('.,;)]')
                 st.image(url_limpa, width=450, caption="Equipamento Sugerido pela Engenharia")
 
-# Input do usuário
+# Entrada de texto
 if p := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
     processar_chat(p)
     st.rerun()
 
-# --- MENU DE AÇÕES RÁPIDAS (Pós-resposta) ---
+# --- MENU DE AÇÕES RÁPIDAS ---
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" and st.session_state.modo_bot == "Dimensionamento de Projeto":
     st.markdown("---")
     st.write("**Ações Sugeridas para este Projeto:**")
-    c1, c2, c3, c4, c5 = st.columns(5)
-    if c1.button("1️⃣ C1"):
+    c1, c2, c3, c4 = st.columns(4)
+    if c1.button("1️⃣ Detalhar C1"):
         processar_chat("Me detalhe melhor o Cenário 1 (inclua custos e lucro bruto)")
         st.rerun()
-    if c2.button("2️⃣ C2"):
+    if c2.button("2️⃣ Detalhar C2"):
         processar_chat("Me detalhe melhor o Cenário 2 (inclua custos e lucro bruto)")
         st.rerun()
-    if c3.button("3️⃣ C3"):
+    if c3.button("3️⃣ Detalhar C3"):
         processar_chat("Me detalhe melhor o Cenário 3 (inclua custos e lucro bruto)")
         st.rerun()
-    if c4.button("📉 Desconto 15%"):
-        processar_chat("Aplique um desconto de 15% sobre o valor de venda do último cenário detalhado e recalcule o lucro.")
-        st.rerun()
-    if c5.button("🔄 Reset"):
+    if c4.button("🔄 Novo Projeto"):
         st.session_state.projeto_ativo = False
         st.session_state.messages = []
         st.rerun()
