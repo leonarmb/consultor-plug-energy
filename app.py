@@ -86,12 +86,13 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
+    # Alternância automática de modo
     if "projeto" in prompt.lower() and st.session_state.modo_bot == "Consulta Técnica":
         st.session_state.modo_bot = "Dimensionamento de Projeto"
-        st.info("Alternando automaticamente para modo 'Dimensionamento de Projeto'.")
+        st.info("Alternando para modo 'Dimensionamento de Projeto'.")
     elif ("estoque" in prompt.lower() or "informação" in prompt.lower()) and st.session_state.modo_bot == "Dimensionamento de Projeto":
         st.session_state.modo_bot = "Consulta Técnica"
-        st.info("Alternando automaticamente para modo 'Consulta Técnica'.")
+        st.info("Alternando para modo 'Consulta Técnica'.")
 
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -99,57 +100,42 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
+            # --- LÓGICA DE COMPORTAMENTO DINÂMICO ---
             if st.session_state.modo_bot == "Consulta Técnica":
-                instrucao_comportamento = """
-                COMPORTAMENTO: Responda de forma direta e concisa apenas o que foi perguntado. 
-                - Se pedirem estoque, informe apenas quantidades e estados (novo/usado).
-                - Se pedirem sobre um modelo, resuma as características cruciais e OBSERVAÇÕES.
-                - NÃO crie os 3 cenários comerciais nem tabelas financeiras completas.
-                - Siga rigorosamente as regras de engenharia para tirar dúvidas pontuais.
-                """
+                instrucao_comportamento = "Responda de forma concisa apenas o que foi perguntado. NÃO crie cenários."
             else:
-                instrucao_comportamento = """
-                COMPORTAMENTO: Atue como Consultor de Projetos e Estrategista Comercial da Plug Energy.
-                Apresente sempre a ESTRATÉGIA COMERCIAL EM 3 CENÁRIOS:
-                1. ECONÔMICO: Menor custo inicial, sem redundância.
-                2. IDEAL: Atendimento perfeito das necessidades atuais. Inclua redundância (N+1) se for Missão Crítica.
-                3. EXPANSÃO (MAIS QUE IDEAL/PERFEITO): Mantém a redundância do ideal, mas com potência superior para suportar o crescimento futuro do cliente.
-                
-                DICA DE RACK: Sugira sempre deixar espaço (U) sobrando para futuros nobreaks ou módulos. 
-                EXCEÇÃO: Se o orçamento (budget) for muito apertado, ofereça o rack preenchido para garantir a venda pelo preço, mas mencione a limitação de crescimento.
-                """
+                # Se o usuário escolhe um cenário, muda para modo detalhamento
+                if re.search(r'(cenário|cenario)\s*[1-3]', prompt.lower()):
+                    instrucao_comportamento = """O usuário escolheu um cenário específico. 
+                    - Detalhe PROFUNDAMENTE apenas este cenário.
+                    - Apresente custos internos (Custo Unitário), valor final e LUCRO BRUTO.
+                    - Reitere fotos e manuais. Trate o vendedor como parceiro de estratégia."""
+                else:
+                    instrucao_comportamento = """Atue como Engenheiro e Estrategista.
+                    - Apresente 3 CENÁRIOS: ECONÔMICO (baixo custo), IDEAL (redundante N+1) e EXPANSÃO (mais que perfeito/futuro).
+                    - Crie UMA TABELA POR CENÁRIO com o Total logo abaixo de cada uma.
+                    - DICA DE RACK: Sugira deixar espaço (U) para expansão, exceto se o budget for crítico."""
 
             full_prompt = f"""Você é o Engenheiro Consultor e Estrategista Comercial da Plug Energy do Brasil. 
-            Esta é uma ferramenta interna para técnicos e vendedores.
-
+            DADOS DE ESTOQUE: {contexto_estoque}
+            
             {instrucao_comportamento}
 
-            DADOS DE ESTOQUE:
-            {contexto_estoque}
-            
             DIRETRIZES TÉCNICAS MANDATÓRIAS (SIGA COM RIGOR):
-            1. POTÊNCIA REAL: Watts = (kVA * Fator de Potência). Aplique +20% de margem sobre a carga.
-            2. MISSÃO CRÍTICA: Prioridade para redundância N+1 (via ATS ou paralelismo).
-            3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas para U. Se profundidade > 90% do rack, ALERTE sobre cabos traseiros.
-            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Emita ALERTA LOGÍSTICO se o sistema for pesado.
-            5. PRIORIDADE MARCA: Sempre prefira Plug Energy.
-            6. BATERIAS E VDC (LÓGICA DA PLANILHA): 
-               - Rendimento do Inversor: 0.96.
-               - Corrente Total: I_total = Carga(W) / (VDC * 0.96).
-               - Corrente por Bateria: I_bat = I_total / Número de Strings.
-               - AUTONOMIA: Use estritamente as tabelas de descarga real (7Ah e 9Ah) da planilha. NÃO use Peukert.
-            7. DINÂMICA DE USO E AUTOCONSUMO: 
-               - Em cenários de uso esporádico (ex: elevadores), alerte que o autoconsumo do UPS e a queda de tensão nas baterias reduzem a capacidade de pico ao longo do tempo. 
-               - Recomende o uso/resgate logo no início da queda para maior segurança.
-            8. PARALELISMO/ATS: Verifique estoque de ATS se o nobreak não tiver placa embutida.
-            9. ADAPTAÇÃO DE TENSÃO: Económico (Fase-Neutro) vs Ideal (Transformador Isolador).
-            10. MULTIMÍDIA: Organize a saída: ### 📂 MULTIMÍDIA -> **Link Foto:** LINK_FOTO: [URL] -> **Manual Técnico:** [URL].
-
-            ESTRATEGIA COMERCIAL: Cenários Económico, Ideal e Expansão.
-            TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
-            Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
-
-            PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso/rack e boas práticas de uso em apagões.
+            1. POTÊNCIA REAL: Watts = (kVA * Fator de Potência). Aplique +20% de margem.
+            2. MISSÃO CRÍTICA: Prioridade para redundância N+1 (ATS ou paralelismo).
+            3. ESPAÇO: 1U = 44.45mm. Alerta de profundidade > 90% do rack.
+            4. LOGÍSTICA: Alerta de peso elevado (reforço de rack).
+            5. MARCA: Preferência Plug Energy.
+            6. BATERIAS (PLANILHA): Rendimento 0.96. I_total = W / (VDC * 0.96). I_bat = I_total / Strings. Use tabelas de descarga real (7Ah/9Ah). NÃO use Peukert.
+            7. DINÂMICA DE USO: Em elevadores/motores, alerte sobre autoconsumo e queda de tensão no tempo de espera. Recomende uso imediato após queda.
+            8. PARALELISMO/ATS: Verifique estoque de ATS se necessário.
+            9. TENSÃO: Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
+            10. MULTIMÍDIA (EXIBIÇÃO OBRIGATÓRIA): 
+                - O link da foto DEVE estar em uma linha isolada com o prefixo 'LINK_FOTO: '.
+                - Formato: ### 📂 MULTIMÍDIA
+                **Link Foto:** LINK_FOTO: [URL_Foto_Principal]
+                **Manual:** [Clique aqui](URL_Manual)
 
             Pergunta: {prompt}"""
             
@@ -163,6 +149,7 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
+                # --- EXIBIÇÃO DE FOTOS ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 if links_fotos:
                     for link in list(dict.fromkeys(links_fotos)):
@@ -170,6 +157,6 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
-                st.error(f"Erro na comunicação com a IA: {e}")
+                st.error(f"Erro: {e}")
         else:
-            st.error("Erro Crítico: Base de dados não carregada.")
+            st.error("Erro: Base de dados não carregada.")
