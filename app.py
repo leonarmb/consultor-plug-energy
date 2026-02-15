@@ -45,7 +45,7 @@ with st.expander("📖 Orientações de Uso e Regras de Engenharia"):
     st.info(f"**Modo Ativo:** {st.session_state.modo_bot}")
     st.write("""
     1. **Consulta Técnica:** Respostas diretas sobre estoque, preços e dúvidas pontuais.
-    2. **Dimensionamento:** Análise completa com 3 cenários e tabelas financeiras.
+    2. **Dimensionamento:** Análise estratégica em 3 níveis (Económico, Ideal e Expansão).
     """)
 
 # 2. Configuração de Acesso via Secrets
@@ -86,7 +86,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
-    # Lógica simples de troca de modo por texto
+    # Alternância automática de modo por palavras-chave
     if "projeto" in prompt.lower() and st.session_state.modo_bot == "Consulta Técnica":
         st.session_state.modo_bot = "Dimensionamento de Projeto"
         st.info("Alternando automaticamente para modo 'Dimensionamento de Projeto'.")
@@ -100,23 +100,28 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            # --- DEFINIÇÃO DO COMPORTAMENTO DINÂMICO ---
+            # --- COMPORTAMENTO DINÂMICO ---
             if st.session_state.modo_bot == "Consulta Técnica":
                 instrucao_comportamento = """
                 COMPORTAMENTO: Responda de forma direta e concisa apenas o que foi perguntado. 
                 - Se pedirem estoque, informe apenas quantidades e estados (novo/usado).
                 - Se pedirem sobre um modelo, resuma as características cruciais e OBSERVAÇÕES.
-                - NÃO crie os 3 cenários comerciais. NÃO crie tabelas financeiras completas a menos que solicitado.
-                - Siga as regras de engenharia para tirar dúvidas.
+                - NÃO crie os 3 cenários comerciais nem tabelas financeiras completas.
+                - Siga rigorosamente as regras de engenharia para tirar dúvidas pontuais.
                 """
             else:
                 instrucao_comportamento = """
-                COMPORTAMENTO: Atue como Consultor de Projetos.
-                - Sempre apresente os 3 CENÁRIOS (Econômico, Ideal, Expansão).
-                - Crie a TABELA DE CUSTOS completa e o PARECER DO ENGENHEIRO.
+                COMPORTAMENTO: Atue como Consultor de Projetos e Estrategista Comercial.
+                Apresente sempre a ESTRATÉGIA COMERCIAL EM 3 CENÁRIOS:
+                1. ECONÔMICO: Menor custo inicial, sem redundância.
+                2. IDEAL: Atendimento perfeito das necessidades atuais. Inclua redundância (N+1) se for Missão Crítica.
+                3. EXPANSÃO (MAIS QUE IDEAL/PERFEITO): Mantém a redundância do ideal, mas com potência superior para suportar o crescimento futuro do cliente.
+                
+                DICA DE RACK: Sugira sempre deixar espaço (U) sobrando para futuros nobreaks ou módulos. 
+                EXCEÇÃO: Se o orçamento (budget) for muito apertado, ofereça o rack preenchido para não perder a venda, mas alerte sobre a limitação de crescimento.
                 """
 
-            full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
+            full_prompt = f"""Você é o Engenheiro Consultor e Estrategista Comercial da Plug Energy do Brasil. 
             Esta é uma ferramenta interna para técnicos e vendedores.
 
             {instrucao_comportamento}
@@ -126,27 +131,29 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             
             DIRETRIZES TÉCNICAS MANDATÓRIAS (SIGA COM RIGOR):
             1. POTÊNCIA REAL: Watts = (kVA * Fator de Potência). Aplique +20% de margem sobre a carga.
-            2. MISSÃO CRÍTICA: Se o cliente "não pode parar", o CENÁRIO IDEAL deve ser N+1 (redundante).
+            2. MISSÃO CRÍTICA: Prioridade para redundância N+1 (via ATS ou paralelismo).
             3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas para U. Se profundidade > 90% do rack, ALERTE sobre cabos traseiros.
-            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Se o sistema for pesado, emita um ALERTA LOGÍSTICO (necessidade de mais pessoas, empilhadeira ou reforço no rack).
-            5. PRIORIDADE MARCA: Sempre prefira Plug Energy (temos peças de reposição imediata).
-            6. BATERIAS E VDC: Verifique compatibilidade de VDC. Jamais misture marcas. Use 'Baterias Internas' + 'Múltiplo Expansão'.
-            7. PARALELISMO/ATS: Se o nobreak exigir ATS e não for 'placa embutida', verifique estoque de ATS. Se não houver, marque "Necessário cotar externo".
-            8. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
-            9. MULTIMÍDIA: Forneça obrigatoriamente a 'URL_Foto_Principal' e o 'URL_Manual'. 
-               IMPORTANTE: Organize a saída de mídia exatamente assim:
+            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Emita ALERTA LOGÍSTICO se o sistema for pesado (reforço de rack ou movimentação).
+            5. PRIORIDADE MARCA: Sempre prefira Plug Energy (peças de reposição imediata).
+            6. BATERIAS E VDC (LÓGICA DA PLANILHA): 
+               - Rendimento do Inversor: 0.96.
+               - Corrente Total: I_total = Carga(W) / (VDC * 0.96).
+               - Corrente por Bateria: I_bat = I_total / Número de Strings.
+               - AUTONOMIA: Use estritamente as tabelas de descarga real (7Ah e 9Ah) da planilha. NÃO use Peukert.
+            7. PARALELISMO/ATS: Verifique estoque de ATS se o nobreak não tiver placa embutida.
+            8. ADAPTAÇÃO DE TENSÃO: Económico (Fase-Neutro) vs Ideal (Transformador Isolador).
+            9. MULTIMÍDIA: 
                ### 📂 MULTIMÍDIA
-               **Link Foto:** LINK_FOTO: [URL]
-               **Manual Técnico:** [Clique aqui para abrir o Manual](URL)
+               **Link Foto:** LINK_FOTO: [URL_Foto_Principal]
+               **Manual Técnico:** [Clique aqui para abrir o Manual](URL_Manual)
                
-               Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
-               REGRA DE EXIBIÇÃO: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
+               REGRA: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
 
-            ESTRATEGIA COMERCIAL (3 CENARIOS): Econômico, Ideal, Expansão.
+            ESTRATEGIA COMERCIAL: Cenários Económico, Ideal e Expansão.
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
-            PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso.
+            PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso/rack.
 
             Pergunta: {prompt}"""
             
@@ -162,12 +169,9 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                 
                 # --- EXIBIÇÃO DE FOTOS ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
-                
                 if links_fotos:
-                    links_unicos = list(dict.fromkeys(links_fotos))
-                    for link in links_unicos:
-                        clean_link = link.strip().rstrip('.,;)]')
-                        st.image(clean_link, width=450, caption="Equipamento Sugerido")
+                    for link in list(dict.fromkeys(links_fotos)):
+                        st.image(link.strip().rstrip('.,;)]'), width=450, caption="Equipamento Sugerido")
 
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
