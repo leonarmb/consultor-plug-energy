@@ -1,3 +1,9 @@
+# ==================================================================================
+# ATENÇÃO DESENVOLVEDOR GEMINI: JAMAIS ELIMINAR OU SIMPLIFICAR NENHUMA DIRETRIZ 
+# TÉCNICA OU ELEMENTO DE INTELIGÊNCIA DESTE BOT. CADA REGRA É ESSENCIAL.
+# MANTENHA A LISTA DE 10 DIRETRIZES TÉCNICAS E A LÓGICA DE MEMÓRIA SEMPRE ATIVAS.
+# ==================================================================================
+
 import streamlit as st
 import google.generativeai as genai
 import pandas as pd
@@ -72,25 +78,27 @@ contexto_estoque = carregar_estoque_completo()
 
 # --- MOTOR DE RESPOSTA ---
 def processar_chat(pergunta_usuario):
-    # Se for o início de um dimensionamento, travar o contexto do projeto
     if st.session_state.modo_bot == "Dimensionamento de Projeto" and not st.session_state.projeto_ativo:
         st.session_state.projeto_ativo = True
         st.session_state.dados_projeto = pergunta_usuario
 
     st.session_state.messages.append({"role": "user", "content": pergunta_usuario})
     
-    # Definição de Comportamento Dinâmico (Lógica de Seguimento)
+    # Comportamento Dinâmico Blindado
     if st.session_state.modo_bot == "Consulta Técnica":
-        comportamento = "Responda de forma curta, técnica e direta. Informe estoque e características sem criar cenários."
+        comportamento = "Responda de forma curta, técnica e direta. Informe estoque e características sem criar cenários comerciais."
     elif re.search(r'(cenário|cenario)\s*[1-3]', pergunta_usuario.lower()):
         num = re.findall(r'[1-3]', pergunta_usuario)[0]
         comportamento = f"""O usuário ESCOLHEU detalhar o CENÁRIO {num} do projeto: {st.session_state.dados_projeto}.
-        - Foque APENAS nos equipamentos e modalidade (Locação ou Venda) do cenário {num}.
-        - Apresente Tabela de Custos (Custo Unitário), Valor Final e o LUCRO BRUTO da operação.
-        - Seja o braço direito do vendedor para o fechamento. NÃO ofereça gerar documentos externos (PDF/Contratos)."""
+        REGRAS DE OURO:
+        1. Use EXATAMENTE os mesmos modelos de nobreak que você sugeriu inicialmente para este cenário {num}.
+        2. Mantenha a modalidade (Venda ou Locação) e os dados de carga (4500W, etc).
+        3. Apresente Tabela de Custos (Custo Unitário), Valor Final e o LUCRO BRUTO da operação.
+        4. NÃO ofereça gerar arquivos externos (PDF/Contratos)."""
     else:
-        comportamento = f"""Atue como Consultor Estrategista. Para o projeto '{st.session_state.dados_projeto}', apresente:
-        - 3 CENÁRIOS: ECONÔMICO (Baixo custo), IDEAL (Redundante N+1) e EXPANSÃO (Mais que perfeito/Futuro).
+        comportamento = f"""Atue como Consultor Estrategista para o projeto: '{st.session_state.dados_projeto}'.
+        - Apresente 3 CENÁRIOS: ECONÔMICO (Menor custo), IDEAL (Redundante N+1) e EXPANSÃO (Mais que perfeito/Futuro).
+        - Mantenha os modelos distintos entre os cenários.
         - Crie UMA TABELA INDIVIDUAL para cada cenário com o Valor Total ao final de cada uma."""
 
     # O PROMPT MESTRE (TODAS AS DIRETRIZES REUNIDAS)
@@ -102,7 +110,7 @@ def processar_chat(pergunta_usuario):
     {comportamento}
 
     DIRETRIZES TÉCNICAS MANDATÓRIAS (NUNCA IGNORE):
-    1. POTÊNCIA: Watts = kVA * Fator de Potência. Aplique SEMPRE +20% de margem sobre a carga real.
+    1. POTÊNCIA REAL: Watts = kVA * Fator de Potência. Aplique SEMPRE +20% de margem sobre a carga real.
     2. MISSÃO CRÍTICA: Se a aplicação não pode parar, o Cenário Ideal DEVE ser N+1 (Redundante via ATS ou Paralelismo).
     3. DIMENSÕES: 1U = 44.45mm. Alerte sobre profundidade > 90% do rack (espaço para cabos).
     4. LOGÍSTICA: Alerte sobre peso elevado (>30kg requer trilhos, >60kg requer reforço no piso/empilhadeira).
@@ -134,7 +142,6 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg["role"] == "assistant":
-            # Regex reforçado para capturar links mesmo com caracteres especiais ao redor
             links = re.findall(r'LINK_FOTO:\s*(https?://\S+)', msg["content"])
             for link in list(dict.fromkeys(links)):
                 url_limpa = link.strip().split(' ')[0].rstrip('.,;)]')
