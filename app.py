@@ -86,7 +86,6 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
-    # Alternância automática de modo por palavras-chave
     if "projeto" in prompt.lower() and st.session_state.modo_bot == "Consulta Técnica":
         st.session_state.modo_bot = "Dimensionamento de Projeto"
         st.info("Alternando automaticamente para modo 'Dimensionamento de Projeto'.")
@@ -100,7 +99,6 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
 
     with st.chat_message("assistant"):
         if contexto_estoque:
-            # --- COMPORTAMENTO DINÂMICO ---
             if st.session_state.modo_bot == "Consulta Técnica":
                 instrucao_comportamento = """
                 COMPORTAMENTO: Responda de forma direta e concisa apenas o que foi perguntado. 
@@ -111,14 +109,14 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                 """
             else:
                 instrucao_comportamento = """
-                COMPORTAMENTO: Atue como Consultor de Projetos e Estrategista Comercial.
+                COMPORTAMENTO: Atue como Consultor de Projetos e Estrategista Comercial da Plug Energy.
                 Apresente sempre a ESTRATÉGIA COMERCIAL EM 3 CENÁRIOS:
                 1. ECONÔMICO: Menor custo inicial, sem redundância.
                 2. IDEAL: Atendimento perfeito das necessidades atuais. Inclua redundância (N+1) se for Missão Crítica.
                 3. EXPANSÃO (MAIS QUE IDEAL/PERFEITO): Mantém a redundância do ideal, mas com potência superior para suportar o crescimento futuro do cliente.
                 
                 DICA DE RACK: Sugira sempre deixar espaço (U) sobrando para futuros nobreaks ou módulos. 
-                EXCEÇÃO: Se o orçamento (budget) for muito apertado, ofereça o rack preenchido para não perder a venda, mas alerte sobre a limitação de crescimento.
+                EXCEÇÃO: Se o orçamento (budget) for muito apertado, ofereça o rack preenchido para garantir a venda pelo preço, mas mencione a limitação de crescimento.
                 """
 
             full_prompt = f"""Você é o Engenheiro Consultor e Estrategista Comercial da Plug Energy do Brasil. 
@@ -133,27 +131,25 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
             1. POTÊNCIA REAL: Watts = (kVA * Fator de Potência). Aplique +20% de margem sobre a carga.
             2. MISSÃO CRÍTICA: Prioridade para redundância N+1 (via ATS ou paralelismo).
             3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas para U. Se profundidade > 90% do rack, ALERTE sobre cabos traseiros.
-            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Emita ALERTA LOGÍSTICO se o sistema for pesado (reforço de rack ou movimentação).
-            5. PRIORIDADE MARCA: Sempre prefira Plug Energy (peças de reposição imediata).
+            4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Emita ALERTA LOGÍSTICO se o sistema for pesado.
+            5. PRIORIDADE MARCA: Sempre prefira Plug Energy.
             6. BATERIAS E VDC (LÓGICA DA PLANILHA): 
                - Rendimento do Inversor: 0.96.
                - Corrente Total: I_total = Carga(W) / (VDC * 0.96).
                - Corrente por Bateria: I_bat = I_total / Número de Strings.
                - AUTONOMIA: Use estritamente as tabelas de descarga real (7Ah e 9Ah) da planilha. NÃO use Peukert.
-            7. PARALELISMO/ATS: Verifique estoque de ATS se o nobreak não tiver placa embutida.
-            8. ADAPTAÇÃO DE TENSÃO: Económico (Fase-Neutro) vs Ideal (Transformador Isolador).
-            9. MULTIMÍDIA: 
-               ### 📂 MULTIMÍDIA
-               **Link Foto:** LINK_FOTO: [URL_Foto_Principal]
-               **Manual Técnico:** [Clique aqui para abrir o Manual](URL_Manual)
-               
-               REGRA: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
+            7. DINÂMICA DE USO E AUTOCONSUMO: 
+               - Em cenários de uso esporádico (ex: elevadores), alerte que o autoconsumo do UPS e a queda de tensão nas baterias reduzem a capacidade de pico ao longo do tempo. 
+               - Recomende o uso/resgate logo no início da queda para maior segurança.
+            8. PARALELISMO/ATS: Verifique estoque de ATS se o nobreak não tiver placa embutida.
+            9. ADAPTAÇÃO DE TENSÃO: Económico (Fase-Neutro) vs Ideal (Transformador Isolador).
+            10. MULTIMÍDIA: Organize a saída: ### 📂 MULTIMÍDIA -> **Link Foto:** LINK_FOTO: [URL] -> **Manual Técnico:** [URL].
 
             ESTRATEGIA COMERCIAL: Cenários Económico, Ideal e Expansão.
             TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
             Ao final: CUSTO TOTAL, VALOR FINAL e LUCRO BRUTO.
 
-            PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso/rack.
+            PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso/rack e boas práticas de uso em apagões.
 
             Pergunta: {prompt}"""
             
@@ -167,7 +163,6 @@ if prompt := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
                 
-                # --- EXIBIÇÃO DE FOTOS ---
                 links_fotos = re.findall(r'LINK_FOTO:\s*(https?://\S+)', full_response)
                 if links_fotos:
                     for link in list(dict.fromkeys(links_fotos)):
