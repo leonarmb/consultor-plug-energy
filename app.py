@@ -102,7 +102,7 @@ def processar_chat(pergunta_usuario):
         - Crie UMA TABELA INDIVIDUAL para cada cenário com o Valor Total ao final de cada uma."""
 
     # O PROMPT MESTRE (TODAS AS DIRETRIZES REUNIDAS)
-    prompt_completo = f"""Você é o Engenheiro Consultor e Estrategista Comercial da Plug Energy do Brasil.
+    prompt_completo = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil.
     DADOS DE ESTOQUE ATUALIZADOS:
     {contexto_estoque}
 
