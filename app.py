@@ -12,7 +12,7 @@ st.markdown("""
     .stApp { background-color: #0e1117; color: #fafafa; }
     .stMarkdown table { color: #fafafa; }
     h1, h2, h3, hr { color: #ffffff !important; }
-    .stButton>button { width: 100%; border-radius: 5px; background-color: #262730; color: white; border: 1px solid #464b5d; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #262730; color: white; border: 1px solid #464b5d; }
     .stButton>button:hover { border: 1px solid #ffffff; color: #ffffff; }
     </style>
 """, unsafe_allow_html=True)
@@ -28,7 +28,7 @@ def exibir_cabecalho():
 
 exibir_cabecalho()
 
-# --- ESTADO DO PROJETO E MEMÓRIA ---
+# --- ESTADO DO PROJETO E MEMÓRIA PERSISTENTE ---
 if "projeto_ativo" not in st.session_state: st.session_state.projeto_ativo = False
 if "dados_projeto" not in st.session_state: st.session_state.dados_projeto = ""
 if "modo_bot" not in st.session_state: st.session_state.modo_bot = "Consulta Técnica"
@@ -37,129 +37,129 @@ if "messages" not in st.session_state: st.session_state.messages = []
 # Sidebar
 with st.sidebar:
     st.title("Configurações")
-    st.session_state.modo_bot = st.radio("Objetivo:", ["Consulta Técnica", "Dimensionamento de Projeto"])
-    if st.button("🆕 Iniciar Novo Projeto"):
+    st.session_state.modo_bot = st.radio("Objetivo do Atendimento:", ["Consulta Técnica", "Dimensionamento de Projeto"])
+    
+    st.markdown("---")
+    if st.button("🆕 Iniciar Novo Projeto (Reset)"):
         st.session_state.projeto_ativo = False
         st.session_state.dados_projeto = ""
         st.session_state.messages = []
         st.rerun()
 
-# --- CARREGAMENTO DA PLANILHA ---
+# --- INTEGRAÇÃO COM GOOGLE GENERATIVE AI ---
 try:
     API_KEY = st.secrets["GOOGLE_API_KEY"]
     LINK_PLANILHA = st.secrets["LINK_PLANILHA_ESTOQUE"]
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel('gemini-3-flash-preview')
 except:
-    st.error("Erro nos Secrets da API.")
+    st.error("Erro técnico: Chaves de API não encontradas.")
     st.stop()
 
 @st.cache_data(ttl=60)
-def carregar_estoque():
+def carregar_estoque_completo():
     try:
         dict_abas = pd.read_excel(LINK_PLANILHA, sheet_name=None)
-        texto = ""
-        for nome, df in dict_abas.items():
+        texto_final = ""
+        for nome_aba, df in dict_abas.items():
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
             df = df.dropna(how='all')
-            texto += f"\n\n--- CATEGORIA: {nome.upper()} ---\n{df.to_csv(index=False)}"
-        return texto
+            texto_final += f"\n\n### CATEGORIA: {nome_aba.upper()} ###\n{df.to_csv(index=False)}"
+        return texto_final
     except: return None
 
-contexto_estoque = carregar_estoque()
+contexto_estoque = carregar_estoque_completo()
 
-# --- FUNÇÃO DE PROCESSAMENTO ---
-def enviar_mensagem(texto_input):
+# --- MOTOR DE RESPOSTA ---
+def processar_chat(pergunta_usuario):
+    # Se for o início de um dimensionamento, travar o contexto do projeto
     if st.session_state.modo_bot == "Dimensionamento de Projeto" and not st.session_state.projeto_ativo:
         st.session_state.projeto_ativo = True
-        st.session_state.dados_projeto = texto_input
+        st.session_state.dados_projeto = pergunta_usuario
 
-    st.session_state.messages.append({"role": "user", "content": texto_input})
+    st.session_state.messages.append({"role": "user", "content": pergunta_usuario})
     
-    # Comportamento Dinâmico (Restaurando a complexidade do prompt)
+    # Definição de Comportamento Dinâmico (Lógica de Seguimento)
     if st.session_state.modo_bot == "Consulta Técnica":
-        instrucao_comportamento = "Responda de forma concisa e técnica apenas o que foi perguntado. Sem cenários."
-    elif re.search(r'(cenário|cenario)\s*[1-3]', texto_input.lower()):
-        num = re.findall(r'[1-3]', texto_input)[0]
-        instrucao_comportamento = f"""O usuário ESCOLHEU detalhar o CENÁRIO {num} do PROJETO: {st.session_state.dados_projeto}.
-        - Detalhe PROFUNDAMENTE apenas este cenário escolhido.
-        - Apresente custos internos (Custo Unitário), Valor Final e LUCRO BRUTO.
-        - Mantenha a modalidade (Venda ou Locação) e use os equipamentos citados no histórico para este cenário {num}."""
+        comportamento = "Responda de forma curta, técnica e direta. Informe estoque e características sem criar cenários."
+    elif re.search(r'(cenário|cenario)\s*[1-3]', pergunta_usuario.lower()):
+        num = re.findall(r'[1-3]', pergunta_usuario)[0]
+        comportamento = f"""O usuário ESCOLHEU detalhar o CENÁRIO {num} do projeto: {st.session_state.dados_projeto}.
+        - Foque APENAS nos equipamentos e modalidade (Locação ou Venda) do cenário {num}.
+        - Apresente Tabela de Custos (Custo Unitário), Valor Final e o LUCRO BRUTO da operação.
+        - Seja o braço direito do vendedor para o fechamento. NÃO ofereça gerar documentos externos (PDF/Contratos)."""
     else:
-        instrucao_comportamento = """Atue como Engenheiro e Estrategista Comercial.
-        - Apresente 3 CENÁRIOS: ECONÔMICO (menor custo), IDEAL (redundante N+1) e EXPANSÃO (mais que perfeito/futuro).
-        - Crie UMA TABELA POR CENÁRIO com o Valor Total logo abaixo de cada uma.
-        - DICA DE RACK: Sugira sempre deixar espaço (U) sobrando para expansão futura."""
+        comportamento = f"""Atue como Consultor Estrategista. Para o projeto '{st.session_state.dados_projeto}', apresente:
+        - 3 CENÁRIOS: ECONÔMICO (Baixo custo), IDEAL (Redundante N+1) e EXPANSÃO (Mais que perfeito/Futuro).
+        - Crie UMA TABELA INDIVIDUAL para cada cenário com o Valor Total ao final de cada uma."""
 
-    full_prompt = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil. 
-    Esta é uma ferramenta interna para técnicos e vendedores.
-
-    {instrucao_comportamento}
-
-    DADOS DE ESTOQUE:
+    # O PROMPT MESTRE (TODAS AS DIRETRIZES REUNIDAS)
+    prompt_completo = f"""Você é o Engenheiro Consultor Sênior e Estrategista Comercial da Plug Energy do Brasil.
+    DADOS DE ESTOQUE ATUALIZADOS:
     {contexto_estoque}
-    
-    DIRETRIZES TÉCNICAS MANDATÓRIAS (SIGA COM RIGOR):
-    1. POTÊNCIA REAL: Watts = (kVA * Fator de Potência). Aplique +20% de margem sobre a carga.
-    2. MISSÃO CRÍTICA: Se o cliente "não pode parar", o CENÁRIO IDEAL deve ser N+1 (redundante).
-    3. ESPAÇO E DIMENSÕES: 1U = 44.45mm. Converta alturas para U. Se profundidade > 90% do rack, ALERTE sobre cabos traseiros.
-    4. PESO E LOGÍSTICA: Verifique a coluna 'Peso (kg)'. Emita um ALERTA LOGÍSTICO (necessidade de mais pessoas, empilhadeira ou reforço no rack).
-    5. PRIORIDADE MARCA: Sempre prefira Plug Energy (temos peças de reposição imediata).
-    6. BATERIAS (LÓGICA DA PLANILHA): Rendimento 0.96. I_total = W / (VDC * 0.96). I_bat = I_total / Strings. Use tabelas de descarga real da planilha (7Ah/9Ah). NÃO use Peukert.
-    7. DINÂMICA DE USO: Em elevadores/motores, alerte sobre autoconsumo e queda de tensão no tempo de espera. Recomende uso imediato.
-    8. PARALELISMO/ATS: Verifique estoque de ATS se o nobreak não tiver placa embutida.
-    9. ADAPTAÇÃO DE TENSÃO (380V -> 220V): Econômico (Fase-Neutro) vs Ideal (Transformador Isolador).
-    10. MULTIMÍDIA: 
-        Organize os links exatamente assim:
+
+    CONTEXTO DE OPERAÇÃO:
+    {comportamento}
+
+    DIRETRIZES TÉCNICAS MANDATÓRIAS (NUNCA IGNORE):
+    1. POTÊNCIA: Watts = kVA * Fator de Potência. Aplique SEMPRE +20% de margem sobre a carga real.
+    2. MISSÃO CRÍTICA: Se a aplicação não pode parar, o Cenário Ideal DEVE ser N+1 (Redundante via ATS ou Paralelismo).
+    3. DIMENSÕES: 1U = 44.45mm. Alerte sobre profundidade > 90% do rack (espaço para cabos).
+    4. LOGÍSTICA: Alerte sobre peso elevado (>30kg requer trilhos, >60kg requer reforço no piso/empilhadeira).
+    5. PRIORIDADE MARCA: Sempre priorize e defenda a marca Plug Energy (peças de reposição imediata).
+    6. BATERIAS (LÓGICA DA PLANILHA PLUG): 
+       - Rendimento do Inversor: 0.96.
+       - I_total = Carga(W) / (VDC * 0.96).
+       - I_bateria = I_total / Número de Strings.
+       - AUTONOMIA: Use as tabelas de descarga real (7Ah/9Ah) da planilha. PROIBIDO usar Peukert.
+    7. DINÂMICA DE USO (ELEVADORES/MOTORES): Alerte que o autoconsumo e a queda de tensão no tempo de espera reduzem a capacidade de pico. Recomende uso imediato após a queda.
+    8. ADAPTAÇÃO DE TENSÃO: Econômico (Fase-Neutro) vs Ideal (Transformador Isolador para 380V->220V).
+    9. RACK: Sugira sempre deixar espaço (U) sobrando para expansão futura, exceto se o budget for o fator limitante.
+    10. MULTIMÍDIA (REGRA DE EXIBIÇÃO):
         ### 📂 MULTIMÍDIA
         **Link Foto:** LINK_FOTO: [URL_Foto_Principal]
-        **Manual Técnico:** [Clique aqui para abrir o Manual](URL_Manual)
-        Exiba apenas a 'URL_Foto_Principal'. Traseira/Frente apenas se pedido.
-        REGRA: Escreva o link da imagem sozinho em uma linha com o prefixo 'LINK_FOTO: '.
+        **Manual Técnico:** [Clique aqui para abrir](URL_Manual)
+        IMPORTANTE: O link da foto deve estar sozinho em uma linha com o prefixo 'LINK_FOTO: '.
 
-    ESTRATÉGIA COMERCIAL: Cenários Econômico, Ideal e Expansão.
-    TABELA DE CUSTOS: Item | Qtd | Condição | Custo Unitário | Valor Venda ou Locação.
-    PARECER DO ENGENHEIRO: Finalize com conselho de venda e alertas de segurança/peso/rack.
-
-    Pergunta: {texto_input}"""
+    Pergunta: {pergunta_usuario}"""
 
     try:
-        response = model.generate_content(full_prompt)
+        response = model.generate_content(prompt_completo)
         st.session_state.messages.append({"role": "assistant", "content": response.text})
     except Exception as e:
-        st.error(f"Erro na IA: {e}")
+        st.error(f"Erro na geração da resposta: {e}")
 
-# --- RENDERIZAÇÃO DO CHAT ---
+# --- RENDERIZAÇÃO DO CHAT E IMAGENS ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg["role"] == "assistant":
+            # Regex reforçado para capturar links mesmo com caracteres especiais ao redor
             links = re.findall(r'LINK_FOTO:\s*(https?://\S+)', msg["content"])
             for link in list(dict.fromkeys(links)):
-                # Limpa a URL de caracteres residuais (pontos, parênteses)
-                clean_url = link.strip().split(' ')[0].rstrip('.,;)]')
-                st.image(clean_url, width=450, caption="Equipamento Sugerido")
+                url_limpa = link.strip().split(' ')[0].rstrip('.,;)]')
+                st.image(url_limpa, width=450, caption="Equipamento Sugerido pela Engenharia")
 
-# Chat Input
+# Entrada de texto
 if p := st.chat_input("Como posso ajudar a Plug Energy hoje?"):
-    enviar_mensagem(p)
+    processar_chat(p)
     st.rerun()
 
-# --- BOTÕES DE AÇÃO ---
+# --- MENU DE AÇÕES RÁPIDAS ---
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant" and st.session_state.modo_bot == "Dimensionamento de Projeto":
     st.markdown("---")
-    st.write("**Ações Rápidas para este Projeto:**")
+    st.write("**Ações Sugeridas para este Projeto:**")
     c1, c2, c3, c4 = st.columns(4)
     if c1.button("1️⃣ Detalhar C1"):
-        enviar_mensagem("Me detalhe melhor o Cenário 1 (custos e lucro)")
+        processar_chat("Me detalhe melhor o Cenário 1 (inclua custos e lucro bruto)")
         st.rerun()
     if c2.button("2️⃣ Detalhar C2"):
-        enviar_mensagem("Me detalhe melhor o Cenário 2 (custos e lucro)")
+        processar_chat("Me detalhe melhor o Cenário 2 (inclua custos e lucro bruto)")
         st.rerun()
     if c3.button("3️⃣ Detalhar C3"):
-        enviar_mensagem("Me detalhe melhor o Cenário 3 (custos e lucro)")
+        processar_chat("Me detalhe melhor o Cenário 3 (inclua custos e lucro bruto)")
         st.rerun()
     if c4.button("🔄 Novo Projeto"):
         st.session_state.projeto_ativo = False
         st.session_state.messages = []
-        st.rerun()}")
+        st.rerun()
